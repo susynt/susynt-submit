@@ -99,7 +99,7 @@ def main():
     if args.pattern: pattern = args.pattern
 
     # Blacklisted sites
-    with open('./blacklist.txt') as f:
+    with open('./txt/blacklist.txt') as f:
         blacklist = f.read()
         blacklist = blacklist.replace('\n', '')
 
