@@ -34,7 +34,7 @@ for inDS in `cat $1`; do
                 outDS=${outDS/2LeptonFilter/2L}
         fi
 
-        command="./eventCounter.py %IN"
+        command="./python/eventCounter.py %IN"
 
 	echo 
 	echo "__________________________________________________________________________________________________________"

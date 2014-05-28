@@ -12,6 +12,6 @@ list = $(shell awk 'BEGIN{FS="/";ORS=" "}{print $$1}' $(SAMPLES))
 all: $(list:%=%_$(MYTAG).prun)
 
 %.prun:
-	./submit.py mc -t $(MYTAG) -f $(SAMPLES) -p `basename $@ _$(MYTAG).prun` --destSE=TRIUMF-LCG2_LOCALGROUPDISK --nickname $(GRIDUSER) &> $@
+	./python/submit.py mc -t $(MYTAG) -f $(SAMPLES) -p `basename $@ _$(MYTAG).prun` --destSE=TRIUMF-LCG2_LOCALGROUPDISK --nickname $(GRIDUSER) &> $@
 
 

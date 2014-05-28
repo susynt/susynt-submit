@@ -14,7 +14,7 @@ fi
 #for inDS in `cat dataSamples.txt | grep "$pattern"`; do
 for inDS in `cat testSamples.txt | grep "$pattern"`; do
 
-        command="./skimEvents.py %IN -l testEvents"
+        command="./python/skimEvents.py %IN -l testEvents"
 
 	echo 
 	echo "__________________________________________________________________________________________________________"

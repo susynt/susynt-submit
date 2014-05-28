@@ -8,10 +8,10 @@
 # Examples
 #
 #  To process all dgemt:
-#  > ./submit.py susy -f dgemt.txt
+#  > ./python/submit.py susy -f dgemt.txt
 #
 #  To process period B of data and assign tag n9999:
-#  > ./submit.py data -p periodB -t n9999
+#  > ./python/submit.py data -p periodB -t n9999
 #
 
 
@@ -150,7 +150,7 @@ def main():
                     outDS = re.sub('AU2CT10_', '', outDS)
 
                 # Grid command
-                gridCommand = './gridScript.sh %IN --metFlav ' + args.met
+                gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
                 gridCommand += ' --nLepFilter ' + args.nLepFilter
                 gridCommand += ' --nLepTauFilter ' + args.nLepTauFilter
                 gridCommand += ' -w ' + sumw + ' -x ' + xsec + ' -s ' + sample
