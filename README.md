@@ -43,4 +43,5 @@ Notes:
 - for signal samples, disable the lepton filter, `--filterOff`.
   This is useful when one needs to compute the signal efficiency,
   and the reduction would anyway be small.
+- `${USER}` and `${TAG}` have to be specified. `${USER}` must match your grid username. 
 
