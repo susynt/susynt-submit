@@ -76,6 +76,7 @@ def main():
     add_arg('--cmtConfig', default=None, help='prun option to set cmt config')
     add_arg('--saveTruth', action='store_true', help='Store truth info')
     add_arg('--filterOff', action='store_true', help='Disable event filters (GRL...TileTrip)')
+    add_arg('--group-role', action='store_true', help='submit jobs with group produ role')
     args = parser.parse_args()
 
     # Standard options for data
@@ -134,7 +135,9 @@ def main():
                 sample = re.sub('physics_', '', sample)
 
                 # Output dataset
-                outDS = 'user.'+args.nickname+'.'+re.sub('/', '', inDS)+'_'+args.tag+'/'
+                outDS_prefix = 'group10.phys-susy.' if args.group_role else "user.%s."%args.nickname
+                #outDS_prefix = "user.%s."%args.nickname
+                outDS = outDS_prefix+re.sub('/', '', inDS)+'_'+args.tag+'/'
                 outDS = re.sub('NTUP_SUSY', 'SusyNt', outDS)
                 outDS = re.sub('SKIM', '', outDS)
                 outDS = re.sub('merge\.', '', outDS)
@@ -199,6 +202,7 @@ def main():
                 prunCommand += ' --destSE=' + args.destSE
                 prunCommand += ' --rootVer=5.34/18 --cmtConfig=x86_64-slc6-gcc47-opt'
                 prunCommand += ' --excludedSite=' + blacklist
+                prunCommand += ('' if not args.group_role else '--official --voms atlas:/atlas/phys-susy/Role=production')
 
                 # You can only have one of the following options
                 if(args.nFilesPerJob is not None):
