@@ -113,7 +113,8 @@ def main():
     for input_file in input_files:
         with open(input_file) as inputs:
             for line in inputs:
-
+                line = line.strip()
+                if line.startswith('#') : continue
                 info = line.split()
                 if len(info) == 0: continue
 
