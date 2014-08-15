@@ -135,23 +135,8 @@ def main():
                 sample = re.sub('\.PhysCont.*', '', sample)
                 sample = re.sub('physics_', '', sample)
 
-                # Output dataset
-                outDS_prefix = 'group10.phys-susy.' if args.group_role else "user.%s."%args.nickname
-                #outDS_prefix = "user.%s."%args.nickname
-                outDS = outDS_prefix+re.sub('/', '', inDS)+'_'+args.tag+'/'
-                outDS = re.sub('NTUP_SUSY', 'SusyNt', outDS)
-                outDS = re.sub('SKIM', '', outDS)
-                outDS = re.sub('merge\.', '', outDS)
-
-                # Filter output dataset names that are too long
-                # Do this on a case by case basis
-                if len(outDS) > 131:
-                    outDS = re.sub('2LeptonFilter', '2L', outDS)
-                    outDS = re.sub('UEEE3_CTEQ6L1_', '', outDS)
-                    outDS = re.sub('AUET2CTEQ6L1_', '', outDS)
-                    outDS = re.sub('AUET3CTEQ6L1_', '', outDS)
-                    outDS = re.sub('AUET2BCTEQ6L1_', '', outDS)
-                    outDS = re.sub('AU2CT10_', '', outDS)
+                outDS = determine_outdataset_name(input_dataset_name=inDS, nt_tag=args.tag,
+                                                  use_group=args.group_role, nickname=args.nickname)
 
                 # Grid command
                 gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
@@ -221,6 +206,30 @@ def main():
                 # Execute prun command
                 if args.verbose: print prunCommand
                 subprocess.call(prunCommand, shell=True)
+
+def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname):
+    prefix = 'group10.phys-susy.' if use_group else "user.%s."%nickname
+    output_ds_name = prefix + re.sub('/', '', input_dataset_name)+'_'+nt_tag+'/'
+    output_ds_name = re.sub('NTUP_SUSY', 'SusyNt', output_ds_name)
+    output_ds_name = re.sub('SKIM',      '', output_ds_name)
+    output_ds_name = re.sub('merge\.',   '', output_ds_name)
+    prun_default_suffix = '_susyNt.root/'
+    max_ds_length = 132 # enforced ds name limit
+    if len(output_ds_name + prun_default_suffix) > max_ds_length:
+        output_ds_name = re.sub('2LeptonFilter', '2L', output_ds_name)
+        output_ds_name = re.sub('UEEE3_CTEQ6L1_', '', output_ds_name)
+        output_ds_name = re.sub('AUET2CTEQ6L1_', '', output_ds_name)
+        output_ds_name = re.sub('AUET3CTEQ6L1_', '', output_ds_name)
+        output_ds_name = re.sub('AUET2BCTEQ6L1_', '', output_ds_name)
+        output_ds_name = re.sub('AU2CT10_', '', output_ds_name)
+    if len(output_ds_name + prun_default_suffix) > max_ds_length:
+        tags_to_keep = "_.*_%s"%nt_tag  # last resort: drop n-2 tags
+        regex = "\.SusyNt\.(?P<other_tags>.*)%s"%tags_to_keep
+        match = re.search(regex, output_ds_name)
+        if match:
+            output_ds_name = output_ds_name.replace(match.group('other_tags'), '')
+    output_ds_name = output_ds_name.replace('__', '_').replace('..', '.').replace('_.', '.').replace('._', '.')
+    return output_ds_name
 
 if __name__ == '__main__':
     main()
