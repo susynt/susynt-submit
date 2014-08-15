@@ -16,6 +16,7 @@
 
 
 from argparse import ArgumentParser
+import glob
 import re
 import subprocess
 
@@ -81,18 +82,17 @@ def main():
 
     # Standard options for data
     if args.job == 'data':
-        #input_files = ['dataSamples.txt']
-        input_files = ['data12_Egamma.txt', 'data12_Muons.txt']
+        input_files = ["txt/data/%s"%f for f in ['data12_Egamma.txt', 'data12_Muons.txt']]
         pattern = 'data'
 
     # Standard options for standard model mc
     elif args.job == 'mc':
-        input_files = ['mcSamples.txt']
+        input_files = glob.glob('txt/background/*.txt')
         pattern = 'mc'
 
     # Standard options for susy signals
     else:
-        input_files = ['susySamples.txt']
+        input_files = glob.glob('txt/signal/p1512/*.txt')
         pattern = 'mc'
 
     # Override standards
