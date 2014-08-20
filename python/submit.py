@@ -188,7 +188,7 @@ def main():
                 prunCommand += ' --destSE=' + args.destSE
                 prunCommand += ' --rootVer=5.34/18 --cmtConfig=x86_64-slc6-gcc47-opt'
                 prunCommand += ' --excludedSite=' + blacklist
-                prunCommand += ('' if not args.group_role else '--official --voms atlas:/atlas/phys-susy/Role=production')
+                prunCommand += ('' if not args.group_role else ' --official --voms atlas:/atlas/phys-susy/Role=production')
 
                 # You can only have one of the following options
                 if(args.nFilesPerJob is not None):
