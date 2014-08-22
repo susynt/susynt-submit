@@ -184,7 +184,7 @@ def main():
                 prunCommand += ' --inDS ' + inDS + ' --outDS ' + outDS
                 prunCommand += ' --inTarBall=area.tar --extFile "*.so,*.root" --match "*root*"'
                 prunCommand += ' --safetySize=600'
-                prunCommand += ' --outputs "susyNt.root,gridFileList.txt"'
+                prunCommand += ' --outputs "susyNt.root"'
                 prunCommand += ' --destSE=' + args.destSE
                 prunCommand += ' --rootVer=5.34/18 --cmtConfig=x86_64-slc6-gcc47-opt'
                 prunCommand += ' --excludedSite=' + blacklist
