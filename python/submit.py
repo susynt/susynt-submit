@@ -135,8 +135,10 @@ def main():
                 sample = re.sub('\.PhysCont.*', '', sample)
                 sample = re.sub('physics_', '', sample)
 
+                out_ds_suffix='nt' # otherwise prun will use append a default '_susyNt.root'
                 outDS = determine_outdataset_name(input_dataset_name=inDS, nt_tag=args.tag,
-                                                  use_group=args.group_role, nickname=args.nickname)
+                                                  use_group=args.group_role, nickname=args.nickname,
+                                                  prun_suffix='_'+out_ds_suffix)
 
                 # Grid command
                 gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
@@ -184,7 +186,7 @@ def main():
                 prunCommand += ' --inDS ' + inDS + ' --outDS ' + outDS
                 prunCommand += ' --inTarBall=area.tar --extFile "*.so,*.root" --match "*root*"'
                 prunCommand += ' --safetySize=600'
-                prunCommand += ' --outputs "susyNt.root"'
+                prunCommand += ' --outputs "{0}:susyNt.root"'.format(out_ds_suffix)
                 prunCommand += ' --destSE=' + args.destSE
                 prunCommand += ' --rootVer=5.34/18 --cmtConfig=x86_64-slc6-gcc47-opt'
                 prunCommand += ' --excludedSite=' + blacklist
@@ -207,22 +209,21 @@ def main():
                 if args.verbose: print prunCommand
                 subprocess.call(prunCommand, shell=True)
 
-def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname):
+def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, prun_suffix='susyNt.root'):
     prefix = 'group.phys-susy.' if use_group else "user.%s."%nickname
     output_ds_name = prefix + re.sub('/', '', input_dataset_name)+'_'+nt_tag+'/'
     output_ds_name = re.sub('NTUP_SUSY', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('SKIM',      '', output_ds_name)
     output_ds_name = re.sub('merge\.',   '', output_ds_name)
-    prun_default_suffix = '_susyNt.root/'
     max_ds_length = 132 # enforced ds name limit
-    if len(output_ds_name + prun_default_suffix) > max_ds_length:
+    if len(output_ds_name + prun_suffix) > max_ds_length:
         output_ds_name = re.sub('2LeptonFilter', '2L', output_ds_name)
         output_ds_name = re.sub('UEEE3_CTEQ6L1_', '', output_ds_name)
         output_ds_name = re.sub('AUET2CTEQ6L1_', '', output_ds_name)
         output_ds_name = re.sub('AUET3CTEQ6L1_', '', output_ds_name)
         output_ds_name = re.sub('AUET2BCTEQ6L1_', '', output_ds_name)
         output_ds_name = re.sub('AU2CT10_', '', output_ds_name)
-    if len(output_ds_name + prun_default_suffix) > max_ds_length:
+    if len(output_ds_name + prun_suffix) > max_ds_length:
         tags_to_keep = "_.*_%s"%nt_tag  # last resort: drop n-2 tags
         regex = "\.SusyNt\.(?P<other_tags>.*)%s"%tags_to_keep
         match = re.search(regex, output_ds_name)
