@@ -215,6 +215,8 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     output_ds_name = re.sub('NTUP_SUSY', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('SKIM',      '', output_ds_name)
     output_ds_name = re.sub('merge\.',   '', output_ds_name)
+    if output_ds_name.count('group.phys-susy.')>1: # duplication appearing when processing data with group role
+        output_ds_name = output_ds_name.replace('group.phys-susy.', '', 1)
     max_ds_length = 132 # enforced ds name limit
     if len(output_ds_name + prun_suffix) > max_ds_length:
         output_ds_name = re.sub('2LeptonFilter', '2L', output_ds_name)
