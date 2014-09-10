@@ -213,6 +213,7 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     prefix = 'group.phys-susy.' if use_group else "user.%s."%nickname
     output_ds_name = prefix + re.sub('/', '', input_dataset_name)+'_'+nt_tag+'/'
     output_ds_name = re.sub('NTUP_SUSY', 'SusyNt', output_ds_name)
+    output_ds_name = re.sub('NTUP_COMMON', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('SKIM',      '', output_ds_name)
     output_ds_name = re.sub('merge\.',   '', output_ds_name)
     if output_ds_name.count('group.phys-susy.')>1: # duplication appearing when processing data with group role
@@ -225,6 +226,7 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
         output_ds_name = re.sub('AUET3CTEQ6L1_', '', output_ds_name)
         output_ds_name = re.sub('AUET2BCTEQ6L1_', '', output_ds_name)
         output_ds_name = re.sub('AU2CT10_', '', output_ds_name)
+        output_ds_name = re.sub('AUET2B_CTEQ6L1_', '', output_ds_name)
     if len(output_ds_name + prun_suffix) > max_ds_length:
         tags_to_keep = "_.*_%s"%nt_tag  # last resort: drop n-2 tags
         regex = "\.SusyNt\.(?P<other_tags>.*)%s"%tags_to_keep
