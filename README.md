@@ -18,12 +18,16 @@ Quickstart
 
 ```
 cd build_area
-source RootCore/scripts/setup.sh
-cd -
-git clone git@github.com:gerbaudo/susynt-submit
+
+setupATLAS
+localSetupDQ2Client
+vproxy
+localSetupPandaClient currentJedi --noAthenaCheck
+rcSetup
+rc compile
+
 cd susynt-submit
-localSetupPandaClient
-./bash/create_tarball.sh
+bash/create_tarball.sh
 ```
 
 At this point you can submit the jobs for the samples you need.
@@ -43,5 +47,5 @@ Notes:
 - for signal samples, disable the lepton filter, `--filterOff`.
   This is useful when one needs to compute the signal efficiency,
   and the reduction would anyway be small.
-- `${USER}` and `${TAG}` have to be specified. `${USER}` must match your grid username. 
+- `${USER}` and `${TAG}` have to be specified. `${USER}` must match your grid username.
 
