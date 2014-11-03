@@ -33,6 +33,8 @@ def get_mc_prod(dataset):
     # Need to parse out the reconstruction tag
     recoTag = re.sub('.*[0-9].._r', '', dataset)
     recoTag = re.sub('_.*', '', recoTag)
+    recoTag = recoTag.strip('/')
+    print "reco tag option ~meaningless with xaod; fixme"
     try:
         recoTagNum = int(recoTag)
     except ValueError as e:
@@ -184,7 +186,7 @@ def main():
                 # The prun command
                 prunCommand = 'prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp '
                 prunCommand += ' --inDS ' + inDS + ' --outDS ' + outDS
-                prunCommand += ' --inTarBall=area.tar --extFile "*.so,*.root" --match "*root*"'
+                prunCommand += ' --inTarBall=area.tgz --extFile "*.so,*.root" --match "*root*"'
                 prunCommand += ' --safetySize=600'
                 prunCommand += ' --outputs "{0}:susyNt.root"'.format(out_ds_suffix)
                 prunCommand += ' --destSE=' + args.destSE
