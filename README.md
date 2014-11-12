@@ -17,16 +17,16 @@ Quickstart
 ----------
 
 ```
-cd build_area
+cd susynt-write/
 
 setupATLAS
 localSetupDQ2Client
-vproxy
+voms-proxy-init -voms atlas -valid 144:00
 localSetupPandaClient currentJedi --noAthenaCheck
 rcSetup
 rc compile
 
-cd susynt-submit
+cd ../susynt-submit
 bash/create_tarball.sh
 ```
 
@@ -34,9 +34,9 @@ At this point you can submit the jobs for the samples you need.
 Below are some reference options:
 
 ```
-./submit.py data --filterTrig --contTau --nickname ${USER} -t ${TAG} -f txt/data/<list>.txt
-./submit.py mc   --saveTruth --contTau  --nickname ${USER} -t ${TAG} -f txt/background/<list>.txt
-./submit.py mc   --saveTruth --filterOff --contTau --nickname ${USER} -t ${TAG} -f txt/signal/<list>.txt
+# ./submit.py data --filterTrig --contTau --nickname ${USER} -t ${TAG} -f txt/data/<list>.txt
+./submit.py mc   --saveTruth --contTau  --nickname ${USER} -t ${TAG} -f txt/background/test_xaod_ttbar.txt
+# ./submit.py mc   --saveTruth --filterOff --contTau --nickname ${USER} -t ${TAG} -f txt/signal/<list>.txt
 ```
 
 Notes:
