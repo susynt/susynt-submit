@@ -25,8 +25,10 @@ voms-proxy-init -voms atlas -valid 144:00
 localSetupPandaClient currentJedi --noAthenaCheck
 rcSetup
 rc compile
+cd ..
 
-cd ../susynt-submit
+git clone git@github.com:gerbaudo/susynt-submit --branch xaod
+cd susynt-submit
 bash/create_tarball.sh
 ```
 
