@@ -224,14 +224,13 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     if output_ds_name.count('group.phys-susy.')>1: # duplication appearing when processing data with group role
         output_ds_name = output_ds_name.replace('group.phys-susy.', '', 1)
     max_ds_length = 132 # enforced ds name limit
-    if len(output_ds_name + prun_suffix) > max_ds_length:
-        output_ds_name = re.sub('2LeptonFilter', '2L', output_ds_name)
-        output_ds_name = re.sub('UEEE3_CTEQ6L1_', '', output_ds_name)
-        output_ds_name = re.sub('AUET2CTEQ6L1_', '', output_ds_name)
-        output_ds_name = re.sub('AUET3CTEQ6L1_', '', output_ds_name)
-        output_ds_name = re.sub('AUET2BCTEQ6L1_', '', output_ds_name)
-        output_ds_name = re.sub('AU2CT10_', '', output_ds_name)
-        output_ds_name = re.sub('AUET2B_CTEQ6L1_', '', output_ds_name)
+    output_ds_name = re.sub('2LeptonFilter', '2L', output_ds_name)
+    output_ds_name = re.sub('UEEE3_CTEQ6L1_', '', output_ds_name)
+    output_ds_name = re.sub('AUET2CTEQ6L1_', '', output_ds_name)
+    output_ds_name = re.sub('AUET3CTEQ6L1_', '', output_ds_name)
+    output_ds_name = re.sub('AUET2BCTEQ6L1_', '', output_ds_name)
+    output_ds_name = re.sub('AU2CT10_', '', output_ds_name)
+    output_ds_name = re.sub('AUET2B_CTEQ6L1_', '', output_ds_name)
     if len(output_ds_name + prun_suffix) > max_ds_length:
         tags_to_keep = "_.*_%s"%nt_tag  # last resort: drop n-2 tags
         regex = "\.SusyNt\.(?P<other_tags>.*)%s"%tags_to_keep
