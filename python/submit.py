@@ -80,6 +80,7 @@ def main():
     add_arg('--saveTruth', action='store_true', help='Store truth info')
     add_arg('--filterOff', action='store_true', help='Disable event filters (GRL...TileTrip)')
     add_arg('--group-role', action='store_true', help='submit jobs with group produ role')
+    add_arg('--do-not-store', action='store_true', help='by default, group ntuples are stored also at SWT2_CPB_PHYS-SUSY')
     args = parser.parse_args()
 
     # Standard options for data
@@ -189,7 +190,8 @@ def main():
                 prunCommand += ' --inTarBall=area.tgz --extFile "*.so,*.root" --match "*root*"'
                 prunCommand += ' --safetySize=600'
                 prunCommand += ' --outputs "{0}:susyNt.root"'.format(out_ds_suffix)
-                prunCommand += ' --destSE=' + args.destSE
+                prunCommand += ' --destSE=' + (args.destSE if not args.group_role else
+                                               ','.join([args.destSE, 'SWT2_CPB_PHYS-SUSY','LRZ-LMU_PHYS-SUSY']))
                 prunCommand += ' --rootVer=5.34/18 --cmtConfig=x86_64-slc6-gcc47-opt'
                 prunCommand += ' --excludedSite=' + blacklist
                 prunCommand += ('' if not args.group_role else ' --official --voms atlas:/atlas/phys-susy/Role=production')
