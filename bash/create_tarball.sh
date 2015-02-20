@@ -12,7 +12,7 @@ if [ -e $tarFile ]; then
 fi
 
 # Create a snapshot list of the SVN tags used to make this tarball, useful for when you forget
-svn info $ROOTCOREBIN/../SusyNtuple $ROOTCOREBIN/../SusyCommon $ROOTCOREBIN/../MultiLep $ROOTCOREBIN/../SUSYTools > tarBallTags
+${ROOTCOREBIN}/../SusyNtuple/susyntuple/print_area_tag_snapshot.py > tarBallTags
 
 # We don't need to actually submit a job, but still need to provide some dummy arguments to prun
 prun --exec "echo" --tmpDir=$tmpDir --outTarBall=$tarFile --useRootCore --noSubmit --outDS=user.$nickname.DummyDoesNothing
