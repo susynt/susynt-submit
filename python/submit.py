@@ -231,7 +231,7 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     output_ds_name = re.sub('AUET2BCTEQ6L1_', '', output_ds_name)
     output_ds_name = re.sub('AU2CT10_', '', output_ds_name)
     output_ds_name = re.sub('AUET2B_CTEQ6L1_', '', output_ds_name)
-    if len(output_ds_name + prun_suffix) > max_ds_length:
+    if len(output_ds_name + prun_suffix + '/') > max_ds_length:
         tags_to_keep = "_.*_%s"%nt_tag  # last resort: drop n-2 tags
         regex = "\.SusyNt\.(?P<other_tags>.*)%s"%tags_to_keep
         match = re.search(regex, output_ds_name)
