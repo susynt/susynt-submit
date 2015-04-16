@@ -71,9 +71,9 @@ def main():
     add_arg('--nLepFilter', default='1', help='Number of preselected light leptons to filter on')
     add_arg('--nLepTauFilter', default='2', help='Number of preselected light+tau to filter on')
     add_arg('--filterTrig', action='store_true', help='Turn on trigger filter')
-    add_arg('--sys', type=bool, default=True, help='toggle systematics')
+    add_arg('--sys', action='store_true', help='toggle systematics, default skip')
     add_arg('--nFilesPerJob', default=None, help='prun option')
-    add_arg('--nGBPerJob', default='MAX', help='prun option')
+    add_arg('--nGBPerJob', default='10', help='prun option')
     add_arg('--noSubmit', action='store_true', help='test prun without submitting')
     add_arg('--useShortLivedReplicas', action='store_true', help='prun option')
     add_arg('--cmtConfig', default=None, help='prun option to set cmt config')
@@ -192,7 +192,7 @@ def main():
                 prunCommand += ' --outputs "{0}:susyNt.root"'.format(out_ds_suffix)
                 prunCommand += ' --destSE=' + (args.destSE if not args.group_role else
                                                ','.join([args.destSE, 'SWT2_CPB_PHYS-SUSY','LRZ-LMU_PHYS-SUSY']))
-                prunCommand += ' --rootVer=5.34/18 --cmtConfig=x86_64-slc6-gcc47-opt'
+                prunCommand += ' --rootVer=6.02/05 --cmtConfig=x86_64-slc6-gcc48-opt'
                 prunCommand += ' --excludedSite=' + blacklist
                 prunCommand += ('' if not args.group_role else ' --official --voms atlas:/atlas/phys-susy/Role=production')
 
@@ -219,6 +219,7 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     output_ds_name = re.sub('NTUP_SUSY', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('NTUP_COMMON', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('AOD', 'SusyNt', output_ds_name)
+    output_ds_name = re.sub('DAOD_SUSY1', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('SKIM',      '', output_ds_name)
     output_ds_name = re.sub('merge\.',   '', output_ds_name)
     if output_ds_name.count('group.phys-susy.')>1: # duplication appearing when processing data with group role
