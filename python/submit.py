@@ -20,25 +20,16 @@ import glob
 import re
 import subprocess
 
-# Some grid option defaults
-defaultTag='n0146'
-defaultNickname='sfarrell'
-defaultMet='Default'
-
 def main():
-
-    parser = ArgumentParser(description='SusyCommon grid submission')
+    parser = ArgumentParser(description='NtMaker grid submission')
     add_arg = parser.add_argument
-    add_arg('-f', '--input-files', nargs='*', 
-            help='input file with datasets, can specify more than one')
+    add_arg('-f', '--input-files', required=True, nargs='*', help='input file with datasets, can specify more than one')
+    add_arg('-n', '--nickname', required=True, help='grid nickname, for naming output DS')
+    add_arg('-t', '--tag', required=True, help='SusyNt tag to assign')
     add_arg('-p', '--pattern', default='.*', help='grep pattern to select datasets')
-    add_arg('-t', '--tag', default=defaultTag, help='SusyNt tag to assign')
     add_arg('-v', '--verbose', action='store_true', help='verbose output')
-    add_arg('--nickname', default=defaultNickname, help='grid nickname, for naming output DS')
-    add_arg('--destSE', default='SLACXRD_SCRATCHDISK', 
-            help='replicate output dataset to specified site')
-    add_arg('--met', default=defaultMet, help='MET flavor to use', 
-            choices=['STVF', 'STVF_JVF', 'Default'])
+    add_arg('--destSE', default='SLACXRD_SCRATCHDISK', help='replicate output dataset to specified site')
+    add_arg('--met', default='Default', help='MET flavor to use', choices=['STVF', 'STVF_JVF', 'Default'])
     add_arg('--doMetFix', action='store_true', help='Turns on MET ele-jet overlap fix')
     add_arg('--contTau', action='store_true', help='Store container taus')
     add_arg('--nLepFilter', default='1', help='Number of preselected light leptons to filter on')
@@ -73,13 +64,7 @@ def main():
                 if re.search(pattern, line) == None: continue
 
                 inDS = info[0]
-                # Get sample name
-                sample = re.sub('.merge.*', '', inDS)
-                sample = re.sub('mc12_8TeV\.[0-9]*\.', '', sample)
-                sample = re.sub('.*phys-susy\.', '', sample)
-                sample = re.sub('\.PhysCont.*', '', sample)
-                sample = re.sub('physics_', '', sample)
-
+                sample = determine_sample_name(inDS)
                 out_ds_suffix='nt' # otherwise prun will use append a default '_susyNt.root'
                 outDS = determine_outdataset_name(input_dataset_name=inDS, nt_tag=args.tag,
                                                   use_group=args.group_role, nickname=args.nickname,
@@ -162,6 +147,21 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     output_ds_name = output_ds_name.replace('__', '_').replace('..', '.').replace('_.', '.').replace('._', '.')
     return output_ds_name
 
+def determine_sample_name(input_dataset_name=''):
+    """from a long input container name, determine a short sample name
+
+    Originally this sample name was used by SusyNtTools to determine
+    on the fly a few running options (based on mc/data, signal/bkg,
+    etc.). I don't know whether we still need it since we're now
+    storing the full input and output container names, but it's nice
+    to have a short human-friendly name.
+    """
+    sample = re.sub('.merge.*', '', input_dataset_name)
+    sample = re.sub('mc12_8TeV\.[0-9]*\.', '', sample)
+    sample = re.sub('.*phys-susy\.', '', sample)
+    sample = re.sub('\.PhysCont.*', '', sample)
+    sample = re.sub('physics_', '', sample)
+    return sample
 
 if __name__ == '__main__':
     main()
