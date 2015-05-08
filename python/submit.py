@@ -101,7 +101,9 @@ def main():
                 gridCommand += ' --nLepFilter ' + args.nLepFilter
                 gridCommand += ' --nLepTauFilter ' + args.nLepTauFilter
                 gridCommand += ' -s ' + sample
-
+                gridCommand += (' --input '+inDS)
+                gridCommand += (' --output '+outDS)
+                gridCommand += (' --tag '+args.tag)
 
                 # Container taus - forced on, for now
                 #gridCommand += ' --saveContTau' if args.contTau else ' --saveTau'
