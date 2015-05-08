@@ -20,7 +20,7 @@ Quickstart
 cd susynt-write/
 
 setupATLAS
-localSetupDQ2Client
+localSetupDQ2Client --skipConfirm
 voms-proxy-init -voms atlas -valid 144:00
 localSetupPandaClient currentJedi --noAthenaCheck
 rcSetup
