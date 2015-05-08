@@ -56,22 +56,11 @@ def main():
     add_arg('--do-not-store', action='store_true', help='by default, group ntuples are stored also at SWT2_CPB_PHYS-SUSY')
     args = parser.parse_args()
 
-
-    # Override standards
     input_files = args.input_files
     pattern = args.pattern
+    blacklist = open('./txt/blacklist.txt').read().strip()
 
-    # Blacklisted sites
-    with open('./txt/blacklist.txt') as f:
-        blacklist = f.read()
-        blacklist = blacklist.replace('\n', '')
-
-    # Print job
-    print 'Submitting', args.tag
-    print 'input file:', input_files
-    print 'pattern:   ', pattern
-
-    # Loop over inputs
+    print "Submitting {}\ninput file: {}\npattern:   {}".format(args.tag, input_files, pattern)
     for input_file in input_files:
         with open(input_file) as inputs:
             for line in inputs:
@@ -95,6 +84,7 @@ def main():
                 outDS = determine_outdataset_name(input_dataset_name=inDS, nt_tag=args.tag,
                                                   use_group=args.group_role, nickname=args.nickname,
                                                   prun_suffix='_'+out_ds_suffix)
+                is_af2_sample = re.search('_a[0-9]*_', inDS)
 
                 # Grid command
                 gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
@@ -104,35 +94,16 @@ def main():
                 gridCommand += (' --input '+inDS)
                 gridCommand += (' --output '+outDS)
                 gridCommand += (' --tag '+args.tag)
+                gridCommand += (' --doMetFix' if args.doMetFix else '')
+                gridCommand += (' --filterTrig' if args.filterTrig else '')
+                gridCommand += (' --saveTruth' if args.saveTruth else '')
+                gridCommand += (' --filterOff' if args.filterOff else '')
+                gridCommand += (' --sys' if args.sys else '')
+                gridCommand += (' --af2' if is_af2_sample else '')
+                gridCommand += (' --saveContTau') # if args.contTau else '') # forced on, for now
 
-                # Container taus - forced on, for now
-                #gridCommand += ' --saveContTau' if args.contTau else ' --saveTau'
-                gridCommand += ' --saveContTau'
-
-                # Met fix
-                if args.doMetFix: gridCommand += ' --doMetFix'
-
-                # Trigger filtering
-                if args.filterTrig: gridCommand += ' --filterTrig'
-
-                # Truth leptons
-                gridCommand += ' --saveTruth' if args.saveTruth else ''
-
-                # Turn off all filtering
-                gridCommand += ' --filterOff' if args.filterOff else ''
-
-                # Systematics
-                if args.sys: gridCommand += ' --sys'
-
-                # AF2 sample option
-                if re.search('_a[0-9]*_', inDS): gridCommand += ' --af2'
-
-                print '\n' + ('_'*90)
-                print 'Input   ', inDS
-                print 'Output  ', outDS
-                print 'Sample  ', sample
-                print 'Command ', gridCommand
-                print ''
+                line_break = ('_'*90)
+                print "\n{}\nInput {}\nOutput {}\nSample {}\nCommand {}\n\n".format(line_break, inDS, outDS, sample, gridCommand)
 
                 # The prun command
                 prunCommand = 'prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp '
@@ -190,6 +161,7 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
             output_ds_name = output_ds_name.replace(match.group('other_tags'), '')
     output_ds_name = output_ds_name.replace('__', '_').replace('..', '.').replace('_.', '.').replace('._', '.')
     return output_ds_name
+
 
 if __name__ == '__main__':
     main()
