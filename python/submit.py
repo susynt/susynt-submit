@@ -25,30 +25,6 @@ defaultTag='n0146'
 defaultNickname='sfarrell'
 defaultMet='Default'
 
-def get_mc_prod(dataset):
-    """
-    Determine if a D3PD sample is MC12b by parsing the DS name to extract
-    the reconstruction tag (e.g. r4485).
-    """
-    # Need to parse out the reconstruction tag
-    recoTag = re.sub('.*[0-9].._r', '', dataset)
-    recoTag = re.sub('_.*', '', recoTag)
-    recoTag = recoTag.strip('/')
-    print "reco tag option ~meaningless with xaod; fixme"
-    try:
-        recoTagNum = int(recoTag)
-    except ValueError as e:
-        print 'ERROR - unable to parse dataset name for reconstruction tag'
-        print 'Dataset:', dataset
-        print 'Extracted tag:', recoTag
-        raise e
-    # This could be extended with other known prods
-    mc12bTag = 4485
-    if recoTagNum < mc12bTag:
-        return 'mc12a'
-    else:
-        return 'mc12b'
-
 def main():
 
     # Job arguments
@@ -150,10 +126,6 @@ def main():
                 gridCommand += ' -w ' + sumw + ' -x ' + xsec + ' -s ' + sample
                 gridCommand += ' --errXsec ' + errXsec
 
-                # MC production tag
-                if args.job != 'data':
-                    mcProd = get_mc_prod(inDS)
-                    gridCommand += ' -p ' + mcProd
 
                 # Container taus - forced on, for now
                 #gridCommand += ' --saveContTau' if args.contTau else ' --saveTau'
