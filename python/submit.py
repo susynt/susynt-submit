@@ -1,18 +1,13 @@
 #!/bin/env python
 
 #
-# SusyNt grid job submit script
-# Run with -h to see the options
-# You must set up panda tools before running this script
-# 
-# Examples
+# Script to submit the jobs to produce SusyNt ntuples
 #
-#  To process all dgemt:
-#  > ./python/submit.py susy -f dgemt.txt
+# See help message and README for examples.
 #
-#  To process period B of data and assign tag n9999:
-#  > ./python/submit.py data -p periodB -t n9999
-#
+# 2012-2015
+# sfarrell@cern.ch
+# davide.gerbaudo@gmail.com
 
 
 from argparse import ArgumentParser
@@ -36,8 +31,8 @@ def main():
     add_arg('--nLepTauFilter', default='2', help='Number of preselected light+tau to filter on')
     add_arg('--filterTrig', action='store_true', help='Turn on trigger filter')
     add_arg('--sys', action='store_true', help='toggle systematics, default skip')
-    add_arg('--nFilesPerJob', default=None, help='prun option')
-    add_arg('--nGBPerJob', default='10', help='prun option')
+    add_arg('--nFilesPerJob', help='prun option')
+    add_arg('--nGBPerJob', help='prun option')
     add_arg('--noSubmit', action='store_true', help='test prun without submitting')
     add_arg('--useShortLivedReplicas', action='store_true', help='prun option')
     add_arg('--cmtConfig', default=None, help='prun option to set cmt config')
@@ -47,6 +42,10 @@ def main():
     add_arg('--do-not-store', action='store_true', help='by default, group ntuples are stored also at SWT2_CPB_PHYS-SUSY')
     args = parser.parse_args()
 
+    if args.nFilesPerJob and args.nGBPerJob:
+        print "args.nFilesPerJob ",args.nFilesPerJob
+        print "args.nGBPerJob: ",args.nGBPerJob
+        parser.error("prun does not allow to specify both options '--nFilesPerJob' and '--nGBPerJob' at the same time")
     input_files = args.input_files
     pattern = args.pattern
     blacklist = open('./txt/blacklist.txt').read().strip()
@@ -81,32 +80,24 @@ def main():
                 gridCommand += (' --saveContTau') # if args.contTau else '') # forced on, for now
 
                 line_break = ('_'*90)
-                print "\n{}\nInput {}\nOutput {}\nSample {}\nCommand {}\n".format(line_break, inDS, outDS, sample, gridCommand)
+                print "\n{}\nInput {}\nOutput {}\nSample {}\nCommand {}".format(line_break, inDS, outDS, sample, gridCommand)
 
                 # The prun command
-                prunCommand = 'prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp '
-                prunCommand += ' --inDS ' + inDS + ' --outDS ' + outDS
-                prunCommand += ' --inTarBall=area.tgz --extFile "*.so,*.root" --match "*root*"'
-                prunCommand += ' --safetySize=600'
-                prunCommand += ' --outputs "{0}:susyNt.root"'.format(out_ds_suffix)
-                prunCommand += ' --destSE=' + (args.destSE if not args.group_role else
-                                               ','.join([args.destSE, 'SWT2_CPB_PHYS-SUSY','LRZ-LMU_PHYS-SUSY']))
-                prunCommand += ' --rootVer=6.02/05 --cmtConfig=x86_64-slc6-gcc48-opt'
-                prunCommand += ' --excludedSite=' + blacklist
+                prunCommand =  ('prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp ')
+                prunCommand += (' --inDS {} --outDS {}'.format(inDS, outDS))
+                prunCommand += (' --inTarBall=area.tgz --extFile "*.so,*.root" --match "*root*"')
+                prunCommand += (' --safetySize=600')
+                prunCommand += (' --excludedSite={}'.format(blacklist))
+                prunCommand += (' --outputs "{0}:susyNt.root"'.format(out_ds_suffix))
+                prunCommand += (' --nFilesPerJob={}'.format(args.nFilesPerJob) if args.nFilesPerJob else '')
+                prunCommand += (' --nGBPerJob={}'.format(args.nGBPerJob) if args.nGBPerJob else '')
+                prunCommand += (' --noSubmit' if args.noSubmit else '')
+                prunCommand += (' --useShortLivedReplicas' if args.useShortLivedReplicas else '')
+                prunCommand += (' --rootVer=6.02/05 --cmtConfig=x86_64-slc6-gcc48-opt')
+                prunCommand += (' --cmtConfig={}'.format(args.cmtConfig) if args.cmtConfig else '') # conflict with above? DG 2015-05-08
                 prunCommand += ('' if not args.group_role else ' --official --voms atlas:/atlas/phys-susy/Role=production')
-
-                # You can only have one of the following options
-                if(args.nFilesPerJob is not None):
-                    prunCommand += ' --nFilesPerJob=' + args.nFilesPerJob
-                else:
-                    prunCommand += ' --nGBPerJob=' + args.nGBPerJob
-
-                # For testing
-                if(args.noSubmit): prunCommand += ' --noSubmit'
-                if(args.useShortLivedReplicas):
-                    prunCommand += ' --useShortLivedReplicas'
-                if(args.cmtConfig is not None):
-                    prunCommand += ' --cmtConfig ' + args.cmtConfig
+                prunCommand += (' --destSE=' + (args.destSE if not args.group_role else
+                                                ','.join([args.destSE, 'SWT2_CPB_PHYS-SUSY','LRZ-LMU_PHYS-SUSY'])))
 
                 # Execute prun command
                 if args.verbose: print prunCommand
@@ -117,8 +108,8 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     output_ds_name = prefix + re.sub('/', '', input_dataset_name)+'_'+nt_tag+'/'
     output_ds_name = re.sub('NTUP_SUSY', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('NTUP_COMMON', 'SusyNt', output_ds_name)
-    output_ds_name = re.sub('AOD', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('DAOD_SUSY1', 'SusyNt', output_ds_name)
+    output_ds_name = re.sub('AOD', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('SKIM',      '', output_ds_name)
     output_ds_name = re.sub('merge\.',   '', output_ds_name)
     if output_ds_name.count('group.phys-susy.')>1: # duplication appearing when processing data with group role
