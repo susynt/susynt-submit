@@ -27,14 +27,11 @@ defaultMet='Default'
 
 def main():
 
-    # Job arguments
     parser = ArgumentParser(description='SusyCommon grid submission')
     add_arg = parser.add_argument
-    add_arg('job', choices=['data', 'mc', 'susy'], 
-            help='specifies some default settings, like input file')
     add_arg('-f', '--input-files', nargs='*', 
             help='input file with datasets, can specify more than one')
-    add_arg('-p', '--pattern', help='grep pattern to select datasets')
+    add_arg('-p', '--pattern', default='.*', help='grep pattern to select datasets')
     add_arg('-t', '--tag', default=defaultTag, help='SusyNt tag to assign')
     add_arg('-v', '--verbose', action='store_true', help='verbose output')
     add_arg('--nickname', default=defaultNickname, help='grid nickname, for naming output DS')
@@ -59,24 +56,10 @@ def main():
     add_arg('--do-not-store', action='store_true', help='by default, group ntuples are stored also at SWT2_CPB_PHYS-SUSY')
     args = parser.parse_args()
 
-    # Standard options for data
-    if args.job == 'data':
-        input_files = ["txt/data/%s"%f for f in ['data12_Egamma.txt', 'data12_Muons.txt']]
-        pattern = 'data'
-
-    # Standard options for standard model mc
-    elif args.job == 'mc':
-        input_files = glob.glob('txt/background/*.txt')
-        pattern = 'mc'
-
-    # Standard options for susy signals
-    else:
-        input_files = glob.glob('txt/signal/p1512/*.txt')
-        pattern = 'mc'
 
     # Override standards
-    if args.input_files: input_files = args.input_files
-    if args.pattern: pattern = args.pattern
+    input_files = args.input_files
+    pattern = args.pattern
 
     # Blacklisted sites
     with open('./txt/blacklist.txt') as f:
@@ -84,7 +67,7 @@ def main():
         blacklist = blacklist.replace('\n', '')
 
     # Print job
-    print 'Submitting', args.job, args.tag
+    print 'Submitting', args.tag
     print 'input file:', input_files
     print 'pattern:   ', pattern
 
@@ -176,7 +159,7 @@ def main():
 
                 # Execute prun command
                 if args.verbose: print prunCommand
-                subprocess.call(prunCommand, shell=True)
+                # subprocess.call(prunCommand, shell=True)
 
 def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, prun_suffix='susyNt.root'):
     prefix = 'group.phys-susy.' if use_group else "user.%s."%nickname
