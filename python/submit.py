@@ -100,13 +100,7 @@ def main():
                 # Match pattern
                 if re.search(pattern, line) == None: continue
 
-                # Extract sumw and xsec, if provided
                 inDS = info[0]
-                sumw, xsec, errXsec = '1', '-1', '-1'
-                if len(info) > 1: sumw = info[1]
-                if len(info) > 2: xsec = str(eval(info[2])) if '*' in info[2] else info[2]
-                if len(info) > 3: errXsec = info[3]
-
                 # Get sample name
                 sample = re.sub('.merge.*', '', inDS)
                 sample = re.sub('mc12_8TeV\.[0-9]*\.', '', sample)
@@ -123,8 +117,7 @@ def main():
                 gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
                 gridCommand += ' --nLepFilter ' + args.nLepFilter
                 gridCommand += ' --nLepTauFilter ' + args.nLepTauFilter
-                gridCommand += ' -w ' + sumw + ' -x ' + xsec + ' -s ' + sample
-                gridCommand += ' --errXsec ' + errXsec
+                gridCommand += ' -s ' + sample
 
 
                 # Container taus - forced on, for now
