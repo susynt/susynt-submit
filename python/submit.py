@@ -53,17 +53,10 @@ def main():
 
     print "Submitting {}\ninput file: {}\npattern:   {}".format(args.tag, input_files, pattern)
     for input_file in input_files:
-        with open(input_file) as inputs:
-            for line in inputs:
-                line = line.strip()
-                if line.startswith('#') : continue
-                info = line.split()
-                if len(info) == 0: continue
-
-                # Match pattern
-                if re.search(pattern, line) == None: continue
-
-                inDS = info[0]
+        with open(input_file) as lines:
+            lines = [l.strip() for l in lines if is_valid_line(l)]
+            for line in lines:
+                inDS = line
                 sample = determine_sample_name(inDS)
                 out_ds_suffix='nt' # otherwise prun will use append a default '_susyNt.root'
                 outDS = determine_outdataset_name(input_dataset_name=inDS, nt_tag=args.tag,
@@ -88,7 +81,7 @@ def main():
                 gridCommand += (' --saveContTau') # if args.contTau else '') # forced on, for now
 
                 line_break = ('_'*90)
-                print "\n{}\nInput {}\nOutput {}\nSample {}\nCommand {}\n\n".format(line_break, inDS, outDS, sample, gridCommand)
+                print "\n{}\nInput {}\nOutput {}\nSample {}\nCommand {}\n".format(line_break, inDS, outDS, sample, gridCommand)
 
                 # The prun command
                 prunCommand = 'prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp '
@@ -117,7 +110,7 @@ def main():
 
                 # Execute prun command
                 if args.verbose: print prunCommand
-                # subprocess.call(prunCommand, shell=True)
+                subprocess.call(prunCommand, shell=True)
 
 def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, prun_suffix='susyNt.root'):
     prefix = 'group.phys-susy.' if use_group else "user.%s."%nickname
@@ -162,6 +155,12 @@ def determine_sample_name(input_dataset_name=''):
     sample = re.sub('\.PhysCont.*', '', sample)
     sample = re.sub('physics_', '', sample)
     return sample
+
+def is_valid_line(line='', regexp=''):
+    "interesting line: non-comment, non-empty, one name, matching selection"
+    line = line.strip()
+    tokens = line.split()
+    return (len(line)>0 and not line.startswith('#') and len(tokens)==1 and re.search(regexp, line))
 
 if __name__ == '__main__':
     main()
