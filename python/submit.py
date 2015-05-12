@@ -34,6 +34,8 @@ def main():
     add_arg('--nFilesPerJob', help='prun option')
     add_arg('--nGBPerJob', help='prun option')
     add_arg('--noSubmit', action='store_true', help='test prun without submitting')
+    add_arg('--useNewCode', action='store_true', help='prun opt')
+    add_arg('--allowTaskDuplication', action='store_true', help='prun opt')
     add_arg('--useShortLivedReplicas', action='store_true', help='prun option')
     add_arg('--cmtConfig', default=None, help='prun option to set cmt config')
     add_arg('--saveTruth', action='store_true', help='Store truth info')
@@ -53,7 +55,7 @@ def main():
     print "Submitting {}\ninput file: {}\npattern:   {}".format(args.tag, input_files, pattern)
     for input_file in input_files:
         with open(input_file) as lines:
-            lines = [l.strip() for l in lines if is_valid_line(l)]
+            lines = [l.strip() for l in lines if is_interesting_line(line=l,regexp=pattern)]
             for line in lines:
                 inDS = line
                 sample = determine_sample_name(inDS)
@@ -92,6 +94,8 @@ def main():
                 prunCommand += (' --nFilesPerJob={}'.format(args.nFilesPerJob) if args.nFilesPerJob else '')
                 prunCommand += (' --nGBPerJob={}'.format(args.nGBPerJob) if args.nGBPerJob else '')
                 prunCommand += (' --noSubmit' if args.noSubmit else '')
+                prunCommand += (' --useNewCode' if args.useNewCode else '')
+                prunCommand += (' --allowTaskDuplication' if args.allowTaskDuplication else '')
                 prunCommand += (' --useShortLivedReplicas' if args.useShortLivedReplicas else '')
                 prunCommand += (' --rootVer=6.02/05 --cmtConfig=x86_64-slc6-gcc48-opt')
                 prunCommand += (' --cmtConfig={}'.format(args.cmtConfig) if args.cmtConfig else '') # conflict with above? DG 2015-05-08
@@ -147,7 +151,7 @@ def determine_sample_name(input_dataset_name=''):
     sample = re.sub('physics_', '', sample)
     return sample
 
-def is_valid_line(line='', regexp=''):
+def is_interesting_line(line='', regexp=''):
     "interesting line: non-comment, non-empty, one name, matching selection"
     line = line.strip()
     tokens = line.split()
