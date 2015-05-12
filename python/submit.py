@@ -1,18 +1,13 @@
 #!/bin/env python
 
 #
-# SusyNt grid job submit script
-# Run with -h to see the options
-# You must set up panda tools before running this script
-# 
-# Examples
+# Script to submit the jobs to produce SusyNt ntuples
 #
-#  To process all dgemt:
-#  > ./python/submit.py susy -f dgemt.txt
+# See help message and README for examples.
 #
-#  To process period B of data and assign tag n9999:
-#  > ./python/submit.py data -p periodB -t n9999
-#
+# 2012-2015
+# sfarrell@cern.ch
+# davide.gerbaudo@gmail.com
 
 
 from argparse import ArgumentParser
@@ -20,61 +15,27 @@ import glob
 import re
 import subprocess
 
-# Some grid option defaults
-defaultTag='n0146'
-defaultNickname='sfarrell'
-defaultMet='Default'
-
-def get_mc_prod(dataset):
-    """
-    Determine if a D3PD sample is MC12b by parsing the DS name to extract
-    the reconstruction tag (e.g. r4485).
-    """
-    # Need to parse out the reconstruction tag
-    recoTag = re.sub('.*[0-9].._r', '', dataset)
-    recoTag = re.sub('_.*', '', recoTag)
-    recoTag = recoTag.strip('/')
-    print "reco tag option ~meaningless with xaod; fixme"
-    try:
-        recoTagNum = int(recoTag)
-    except ValueError as e:
-        print 'ERROR - unable to parse dataset name for reconstruction tag'
-        print 'Dataset:', dataset
-        print 'Extracted tag:', recoTag
-        raise e
-    # This could be extended with other known prods
-    mc12bTag = 4485
-    if recoTagNum < mc12bTag:
-        return 'mc12a'
-    else:
-        return 'mc12b'
-
 def main():
-
-    # Job arguments
-    parser = ArgumentParser(description='SusyCommon grid submission')
+    parser = ArgumentParser(description='NtMaker grid submission')
     add_arg = parser.add_argument
-    add_arg('job', choices=['data', 'mc', 'susy'], 
-            help='specifies some default settings, like input file')
-    add_arg('-f', '--input-files', nargs='*', 
-            help='input file with datasets, can specify more than one')
-    add_arg('-p', '--pattern', help='grep pattern to select datasets')
-    add_arg('-t', '--tag', default=defaultTag, help='SusyNt tag to assign')
+    add_arg('-f', '--input-files', required=True, nargs='*', help='input file with datasets, can specify more than one')
+    add_arg('-n', '--nickname', required=True, help='grid nickname, for naming output DS')
+    add_arg('-t', '--tag', required=True, help='SusyNt tag to assign')
+    add_arg('-p', '--pattern', default='.*', help='grep pattern to select datasets')
     add_arg('-v', '--verbose', action='store_true', help='verbose output')
-    add_arg('--nickname', default=defaultNickname, help='grid nickname, for naming output DS')
-    add_arg('--destSE', default='SLACXRD_SCRATCHDISK', 
-            help='replicate output dataset to specified site')
-    add_arg('--met', default=defaultMet, help='MET flavor to use', 
-            choices=['STVF', 'STVF_JVF', 'Default'])
+    add_arg('--destSE', default='SLACXRD_SCRATCHDISK', help='replicate output dataset to specified site')
+    add_arg('--met', default='Default', help='MET flavor to use', choices=['STVF', 'STVF_JVF', 'Default'])
     add_arg('--doMetFix', action='store_true', help='Turns on MET ele-jet overlap fix')
     add_arg('--contTau', action='store_true', help='Store container taus')
     add_arg('--nLepFilter', default='1', help='Number of preselected light leptons to filter on')
     add_arg('--nLepTauFilter', default='2', help='Number of preselected light+tau to filter on')
     add_arg('--filterTrig', action='store_true', help='Turn on trigger filter')
     add_arg('--sys', action='store_true', help='toggle systematics, default skip')
-    add_arg('--nFilesPerJob', default=None, help='prun option')
-    add_arg('--nGBPerJob', default='10', help='prun option')
+    add_arg('--nFilesPerJob', help='prun option')
+    add_arg('--nGBPerJob', help='prun option')
     add_arg('--noSubmit', action='store_true', help='test prun without submitting')
+    add_arg('--useNewCode', action='store_true', help='prun opt')
+    add_arg('--allowTaskDuplication', action='store_true', help='prun opt')
     add_arg('--useShortLivedReplicas', action='store_true', help='prun option')
     add_arg('--cmtConfig', default=None, help='prun option to set cmt config')
     add_arg('--saveTruth', action='store_true', help='Store truth info')
@@ -83,131 +44,64 @@ def main():
     add_arg('--do-not-store', action='store_true', help='by default, group ntuples are stored also at SWT2_CPB_PHYS-SUSY')
     args = parser.parse_args()
 
-    # Standard options for data
-    if args.job == 'data':
-        input_files = ["txt/data/%s"%f for f in ['data12_Egamma.txt', 'data12_Muons.txt']]
-        pattern = 'data'
+    if args.nFilesPerJob and args.nGBPerJob:
+        print "args.nFilesPerJob ",args.nFilesPerJob
+        print "args.nGBPerJob: ",args.nGBPerJob
+        parser.error("prun does not allow to specify both options '--nFilesPerJob' and '--nGBPerJob' at the same time")
+    input_files = args.input_files
+    pattern = args.pattern
+    blacklist = open('./txt/blacklist.txt').read().strip()
 
-    # Standard options for standard model mc
-    elif args.job == 'mc':
-        input_files = glob.glob('txt/background/*.txt')
-        pattern = 'mc'
-
-    # Standard options for susy signals
-    else:
-        input_files = glob.glob('txt/signal/p1512/*.txt')
-        pattern = 'mc'
-
-    # Override standards
-    if args.input_files: input_files = args.input_files
-    if args.pattern: pattern = args.pattern
-
-    # Blacklisted sites
-    with open('./txt/blacklist.txt') as f:
-        blacklist = f.read()
-        blacklist = blacklist.replace('\n', '')
-
-    # Print job
-    print 'Submitting', args.job, args.tag
-    print 'input file:', input_files
-    print 'pattern:   ', pattern
-
-    # Loop over inputs
+    print "Submitting {}\ninput file: {}\npattern:   {}".format(args.tag, input_files, pattern)
     for input_file in input_files:
-        with open(input_file) as inputs:
-            for line in inputs:
-                line = line.strip()
-                if line.startswith('#') : continue
-                info = line.split()
-                if len(info) == 0: continue
-
-                # Match pattern
-                if re.search(pattern, line) == None: continue
-
-                # Extract sumw and xsec, if provided
-                inDS = info[0]
-                sumw, xsec, errXsec = '1', '-1', '-1'
-                if len(info) > 1: sumw = info[1]
-                if len(info) > 2: xsec = str(eval(info[2])) if '*' in info[2] else info[2]
-                if len(info) > 3: errXsec = info[3]
-
-                # Get sample name
-                sample = re.sub('.merge.*', '', inDS)
-                sample = re.sub('mc12_8TeV\.[0-9]*\.', '', sample)
-                sample = re.sub('.*phys-susy\.', '', sample)
-                sample = re.sub('\.PhysCont.*', '', sample)
-                sample = re.sub('physics_', '', sample)
-
+        with open(input_file) as lines:
+            lines = [l.strip() for l in lines if is_interesting_line(line=l,regexp=pattern)]
+            for line in lines:
+                inDS = line
+                sample = determine_sample_name(inDS)
                 out_ds_suffix='nt' # otherwise prun will use append a default '_susyNt.root'
                 outDS = determine_outdataset_name(input_dataset_name=inDS, nt_tag=args.tag,
                                                   use_group=args.group_role, nickname=args.nickname,
                                                   prun_suffix='_'+out_ds_suffix)
+                is_af2_sample = re.search('_a[0-9]*_', inDS)
 
                 # Grid command
                 gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
                 gridCommand += ' --nLepFilter ' + args.nLepFilter
                 gridCommand += ' --nLepTauFilter ' + args.nLepTauFilter
-                gridCommand += ' -w ' + sumw + ' -x ' + xsec + ' -s ' + sample
-                gridCommand += ' --errXsec ' + errXsec
+                gridCommand += ' -s ' + sample
+                gridCommand += (' --input '+inDS)
+                gridCommand += (' --output '+outDS)
+                gridCommand += (' --tag '+args.tag)
+                gridCommand += (' --doMetFix' if args.doMetFix else '')
+                gridCommand += (' --filterTrig' if args.filterTrig else '')
+                gridCommand += (' --saveTruth' if args.saveTruth else '')
+                gridCommand += (' --filterOff' if args.filterOff else '')
+                gridCommand += (' --sys' if args.sys else '')
+                gridCommand += (' --af2' if is_af2_sample else '')
+                gridCommand += (' --saveContTau') # if args.contTau else '') # forced on, for now
 
-                # MC production tag
-                if args.job != 'data':
-                    mcProd = get_mc_prod(inDS)
-                    gridCommand += ' -p ' + mcProd
-
-                # Container taus - forced on, for now
-                #gridCommand += ' --saveContTau' if args.contTau else ' --saveTau'
-                gridCommand += ' --saveContTau'
-
-                # Met fix
-                if args.doMetFix: gridCommand += ' --doMetFix'
-
-                # Trigger filtering
-                if args.filterTrig: gridCommand += ' --filterTrig'
-
-                # Truth leptons
-                gridCommand += ' --saveTruth' if args.saveTruth else ''
-
-                # Turn off all filtering
-                gridCommand += ' --filterOff' if args.filterOff else ''
-
-                # Systematics
-                if args.sys: gridCommand += ' --sys'
-
-                # AF2 sample option
-                if re.search('_a[0-9]*_', inDS): gridCommand += ' --af2'
-
-                print '\n' + ('_'*90)
-                print 'Input   ', inDS
-                print 'Output  ', outDS
-                print 'Sample  ', sample
-                print 'Command ', gridCommand
-                print ''
+                line_break = ('_'*90)
+                print "\n{}\nInput {}\nOutput {}\nSample {}\nCommand {}".format(line_break, inDS, outDS, sample, gridCommand)
 
                 # The prun command
-                prunCommand = 'prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp '
-                prunCommand += ' --inDS ' + inDS + ' --outDS ' + outDS
-                prunCommand += ' --inTarBall=area.tgz --extFile "*.so,*.root" --match "*root*"'
-                prunCommand += ' --safetySize=600'
-                prunCommand += ' --outputs "{0}:susyNt.root"'.format(out_ds_suffix)
-                prunCommand += ' --destSE=' + (args.destSE if not args.group_role else
-                                               ','.join([args.destSE, 'SWT2_CPB_PHYS-SUSY','LRZ-LMU_PHYS-SUSY']))
-                prunCommand += ' --rootVer=6.02/05 --cmtConfig=x86_64-slc6-gcc48-opt'
-                prunCommand += ' --excludedSite=' + blacklist
+                prunCommand =  ('prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp ')
+                prunCommand += (' --inDS {} --outDS {}'.format(inDS, outDS))
+                prunCommand += (' --inTarBall=area.tgz --extFile "*.so,*.root" --match "*root*"')
+                prunCommand += (' --safetySize=600')
+                prunCommand += (' --excludedSite={}'.format(blacklist))
+                prunCommand += (' --outputs "{0}:susyNt.root"'.format(out_ds_suffix))
+                prunCommand += (' --nFilesPerJob={}'.format(args.nFilesPerJob) if args.nFilesPerJob else '')
+                prunCommand += (' --nGBPerJob={}'.format(args.nGBPerJob) if args.nGBPerJob else '')
+                prunCommand += (' --noSubmit' if args.noSubmit else '')
+                prunCommand += (' --useNewCode' if args.useNewCode else '')
+                prunCommand += (' --allowTaskDuplication' if args.allowTaskDuplication else '')
+                prunCommand += (' --useShortLivedReplicas' if args.useShortLivedReplicas else '')
+                prunCommand += (' --rootVer=6.02/05 --cmtConfig=x86_64-slc6-gcc48-opt')
+                prunCommand += (' --cmtConfig={}'.format(args.cmtConfig) if args.cmtConfig else '') # conflict with above? DG 2015-05-08
                 prunCommand += ('' if not args.group_role else ' --official --voms atlas:/atlas/phys-susy/Role=production')
-
-                # You can only have one of the following options
-                if(args.nFilesPerJob is not None):
-                    prunCommand += ' --nFilesPerJob=' + args.nFilesPerJob
-                else:
-                    prunCommand += ' --nGBPerJob=' + args.nGBPerJob
-
-                # For testing
-                if(args.noSubmit): prunCommand += ' --noSubmit'
-                if(args.useShortLivedReplicas):
-                    prunCommand += ' --useShortLivedReplicas'
-                if(args.cmtConfig is not None):
-                    prunCommand += ' --cmtConfig ' + args.cmtConfig
+                prunCommand += (' --destSE=' + (args.destSE if not args.group_role else
+                                                ','.join([args.destSE, 'SWT2_CPB_PHYS-SUSY','LRZ-LMU_PHYS-SUSY'])))
 
                 # Execute prun command
                 if args.verbose: print prunCommand
@@ -218,8 +112,8 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     output_ds_name = prefix + re.sub('/', '', input_dataset_name)+'_'+nt_tag+'/'
     output_ds_name = re.sub('NTUP_SUSY', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('NTUP_COMMON', 'SusyNt', output_ds_name)
-    output_ds_name = re.sub('AOD', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('DAOD_SUSY1', 'SusyNt', output_ds_name)
+    output_ds_name = re.sub('AOD', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('SKIM',      '', output_ds_name)
     output_ds_name = re.sub('merge\.',   '', output_ds_name)
     if output_ds_name.count('group.phys-susy.')>1: # duplication appearing when processing data with group role
@@ -240,6 +134,28 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
             output_ds_name = output_ds_name.replace(match.group('other_tags'), '')
     output_ds_name = output_ds_name.replace('__', '_').replace('..', '.').replace('_.', '.').replace('._', '.')
     return output_ds_name
+
+def determine_sample_name(input_dataset_name=''):
+    """from a long input container name, determine a short sample name
+
+    Originally this sample name was used by SusyNtTools to determine
+    on the fly a few running options (based on mc/data, signal/bkg,
+    etc.). I don't know whether we still need it since we're now
+    storing the full input and output container names, but it's nice
+    to have a short human-friendly name.
+    """
+    sample = re.sub('.merge.*', '', input_dataset_name)
+    sample = re.sub('mc12_8TeV\.[0-9]*\.', '', sample)
+    sample = re.sub('.*phys-susy\.', '', sample)
+    sample = re.sub('\.PhysCont.*', '', sample)
+    sample = re.sub('physics_', '', sample)
+    return sample
+
+def is_interesting_line(line='', regexp=''):
+    "interesting line: non-comment, non-empty, one name, matching selection"
+    line = line.strip()
+    tokens = line.split()
+    return (len(line)>0 and not line.startswith('#') and len(tokens)==1 and re.search(regexp, line))
 
 if __name__ == '__main__':
     main()

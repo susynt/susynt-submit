@@ -36,10 +36,10 @@ At this point you can submit the jobs for the samples you need.
 Below are some reference options:
 
 ```
-./submit.py data --filterTrig --contTau --nickname ${USER} -t ${TAG} -f txt/datasets/2015/data_egamma.txt
-./submit.py data --filterTrig --contTau --nickname ${USER} -t ${TAG} -f txt/datasets/2015/data_muons.txt
-./submit.py mc   --saveTruth  --contTau --nickname ${USER} -t ${TAG} -f txt/datasets/2015/mc_p1784.txt
-# ./submit.py mc   --saveTruth --filterOff --contTau --nickname ${USER} -t ${TAG} -f txt/signal/<list>.txt
+./submit.py --filterTrig --contTau --nickname ${USER} -t ${TAG} -f txt/datasets/2015/data_egamma.txt
+./submit.py --filterTrig --contTau --nickname ${USER} -t ${TAG} -f txt/datasets/2015/data_muons.txt
+./submit.py --saveTruth  --contTau --nickname ${USER} -t ${TAG} -f txt/datasets/2015/mc_p1784.txt
+# ./submit.py --saveTruth --filterOff --contTau --nickname ${USER} -t ${TAG} -f txt/signal/<list>.txt
 ```
 
 Notes:
