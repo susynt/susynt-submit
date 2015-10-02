@@ -66,7 +66,8 @@ def main():
                 is_af2_sample = re.search('_a[0-9]*_', inDS)
 
                 # Grid command
-                gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
+                #gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
+                gridCommand = './bash/gridScript.sh %IN '
                 gridCommand += ' --nLepFilter ' + args.nLepFilter
                 gridCommand += ' --nLepTauFilter ' + args.nLepTauFilter
                 gridCommand += ' -s ' + sample
