@@ -224,8 +224,8 @@ def determine_outdataset_name(input_dataset_name, nt_tag, nickname_) :
     output_ds_name = re.sub('A14NNPDF23LO_', '', output_ds_name)
 
     if len(output_ds_name + '/') > max_ds_length :
-        tags_to_keep = "_.*_%s"%_nt_tag # last resort: drop n-2 tags
-        regex = "\.SusyNt\.(?<other_tags>.*)%s"%tags_to_keep
+        tags_to_keep = "_.*_%s"%nt_tag # last resort: drop n-2 tags
+        regex = "\.SusyNt\.(?P<other_tags>.*)%s"%tags_to_keep
         match = re.search(regex, output_ds_name)
         if match :
             output_ds_name = output_ds_name.replace(match.group('other_tags'), '')
