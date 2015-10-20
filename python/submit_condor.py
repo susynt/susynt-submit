@@ -73,6 +73,7 @@ def main() :
     pattern     = args.pattern
     cache_only  = args.cache_only
     run_site    = args.run_site
+    fail_check  = args.fail_check
 
     site_option   = "brick-only"
     do_site_local = False
@@ -130,7 +131,7 @@ def main() :
                     input_container = inDS
 
                     ## provide the arguments to the ARGS method in condor
-                    sub_file = "submitFile.condor"
+                    sub_file_template = "submitFile_TEMPLATE.condor"
 
                     #____________________________________________________________________#
                     # Begin building up the submission script and command for NtMaker.py
@@ -186,6 +187,9 @@ def main() :
                     # end string of ARGS, close the string quotes
                     run_cmd += '"'
 
+                    susynt_filename = sub_name + ".susyNt.root"
+                    output_file = ' "%s = %s/%s" '%(susynt_filename, str(os.path.abspath(out_dir)), susynt_filename)
+                    sub_file = add_output_files(sub_file_template, susynt_filename, output_file)
                     # now call condor_submit
                     run_cmd += ' condor_submit %s '%sub_file
 
@@ -200,6 +204,30 @@ def main() :
 
                     # execute the command
                     subprocess.call(run_cmd, shell=True)
+                    # clean up the submission file
+                    cmd = "rm %s"%sub_file
+                    subprocess.call(cmd, shell=True)
+
+def add_output_files(con_file, root_file, output_path_string) :
+    inlines = open(con_file).readlines()
+    name = 'submitFile_%s.condor'%root_file
+    out_file = open(name, 'w')
+    for line in inlines :
+        if not line : continue
+        line = line.strip()
+        if 'OUTFILE' in line and 'REMAP' not in line :
+            line = 'transfer_output_files = %s'%root_file
+            out_file.write(line + "\n")
+        elif 'OUTFILE_REMAP' in line :
+            line = 'transfer_output_remaps = %s'%output_path_string
+            out_file.write(line + "\n")
+        else :
+            out_file.write(line + "\n")
+    out_file.close()
+
+    return name
+
+    
 
 def determine_outdataset_name(input_dataset_name, nt_tag, nickname_) :
     max_ds_length = 132 # enforced ds name limit
@@ -261,14 +289,14 @@ def get_sub_sample_name(sample='', nickname_='') :
 def look_for_condor_script(site_local_ = False, site_sdsc_ = False, site_uc_ = False) :
     '''
     will look for the default condor submission
-    script "submitFile.condor" in the current
+    script "submitFile_TEMPLATE.condor" in the current
     directory
 
     if it is not found it will be made
     '''
 
-    if not os.path.isfile('submitFile.condor') :
-        print 'Condor submission script "submitFile.condor" not found. One will be made.'
+    if not os.path.isfile('submitFile_TEMPLATE.condor') :
+        print 'Condor submission script template "submitFile_TEMPLATE.condor" not found. One will be made.'
 
         site_local = 'false'
         site_sdsc  = 'false'
@@ -277,16 +305,19 @@ def look_for_condor_script(site_local_ = False, site_sdsc_ = False, site_uc_ = F
         if site_sdsc_  : site_sdsc  = 'true'
         if site_uc_    : site_uc    = 'true'
 
-        file_ = open('submitFile.condor', 'w')
+        file_ = open('submitFile_TEMPLATE.condor', 'w')
         file_.write('universe = vanilla\n')
         file_.write('+local=true\n')
         file_.write('+site_local=%s\n'%site_local)
         file_.write('+sdsc=%s\n'%site_sdsc)
         file_.write('+uc=%s\n'%site_uc)
+        file_.write('transfer_input_files = area.tgz\n')
         file_.write('executable = RunNtMaker.sh\n')
         file_.write('arguments = $ENV(ARGS)\n')
         file_.write('should_transfer_files = YES\n')
         file_.write('when_to_transfer_output = ON_EXIT\n')
+        file_.write('transfer_output_files = OUTFILE\n')
+        file_.write('transfer_output_remaps = OUTFILE_REMAP\n')
         file_.write('use_x509userproxy = True\n')
         file_.write('notification = Never\n')
         file_.write('queue\n')
@@ -302,7 +333,6 @@ def look_for_condor_executable() :
     '''
     if not os.path.isfile('RunNtMaker.sh') :
         print 'Condor executable "RunNtMaker.sh" not found. One will be made.'
-
         file_ = open('RunNtMaker.sh', 'w')
         file_.write('#!/bin/bash\n\n\n')
         file_.write('echo " ------- RunNtMaker ------- "\n')
@@ -317,16 +347,23 @@ def look_for_condor_executable() :
         file_.write('while (( "$#" )); do\n')
         file_.write('   shift\n')
         file_.write('done\n\n')
-        file_.write('echo "RunNtMaker    Moving to starting directory : ${start_dir}"\n')
-        file_.write('cd ${start_dir}\n\n')
+        file_.write('start_dir1=${PWD}\n')
+        file_.write('echo "untarring area.tgz"\n')
+        file_.write('tar -xzf area.tgz\n\n')
+        file_.write('echo "current directory structure:"\n')
+        file_.write('ls -ltrh\n\n')
         file_.write('export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase\n')
-        file_.write('source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh\n\n')
-        file_.write('localSetupFAX\n')
-        file_.write('source RootCoreBin/local_setup.sh\n\n')
-        file_.write('echo "RunNtMaker    Moving to output directory : ${out_dir}"\n')
-        file_.write('cd ${out_dir}\n\n')
-        file_.write('NtMaker ${ntmaker_options}')
+        file_.write('source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh\n')
+        file_.write('cd susynt-write\n')
+        file_.write('lsetup fax\n')
+        file_.write('source RootCoreBin/local_setup.sh\n')
+        file_.write('cd ${start_dir1}\n\n')
+        file_.write('echo "calling NtMaker"\n')
+        file_.write('NtMaker ${ntmaker_options}\n\n\n')
+        file_.write('echo "final directory structure:"\n')
+        file_.write('ls -ltrh\n')
         file_.close()
+
  
 def get_FAX_files(input_dataset) :
     global fax_is_checked
