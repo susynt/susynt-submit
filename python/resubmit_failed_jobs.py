@@ -66,16 +66,18 @@ def main() :
         cmd += "condor_submit %s "%condor_sub_name
 
         time_stamp = datetime.datetime.now().strftime("%I%M%p_%b_%d_%y")
-        cmd += ' -append "log = %s" '%(ds.condorLog.replace(".log", ".%s.log"%time_stamp))
-        cmd += ' -append "error = %s" '%(ds.ntmakerErrLog.replace(".err", ".%s.err"%time_stamp))
-        cmd += ' -append "output = %s" '%(ds.ntmakerOutLog.replace(".out", ".%s.out"%time_stamp))
+        cmd += ' -append "log = %s" '%(ds.condorLog.replace(".log", ".%s.log"%time_stamp).strip())
+        cmd += ' -append "error = %s" '%(ds.ntmakerErrLog.replace(".err", ".%s.err"%time_stamp).strip())
+        cmd += ' -append "output = %s" '%(ds.ntmakerOutLog.replace(".out", ".%s.out"%time_stamp).strip())
 
         line_break = "-"*90
         print line_break
+        print "Resubmitting %s : %s"%(ds.log.replace(output_dir+"/", "",1)[:ds.log.find('/logs')], ds.outputSusyNtName)
         print "Resubmitting %s : %s"%(ds.parentDataset, ds.output)
         subprocess.call(cmd, shell=True)
         cmd = "rm %s"%condor_sub_name
         subprocess.call(cmd, shell=True)
+        sys.exit()
 
 def getCondorExecutable(ds) :
     template_lines = open("submitFile_TEMPLATE.condor").readlines()
@@ -128,6 +130,14 @@ def getDataset(log) :
     ds.ntmakerErrLog = getNtMakerErrLogName(lines)
     ds.ntmakerOptions = getNtMakerOptions(lines)
     ds.outputSusyNtName = getOutputNtName(lines)
+    #print "source code dir     : %s"%ds.sourceCodeDir
+    #print "out dir             : %s"%ds.outDir
+    #print " ntmaker out log    : %s"%ds.ntmakerOutLog
+    #print "condor log          : %s"%ds.condorLog
+    #print "ntmaker err log     : %s"%ds.ntmakerErrLog
+    #print "ntmaker options     : %s"%ds.ntmakerOptions
+    #print "output susy nt name : %s"%ds.outputSusyNtName
+    #sys.exit()
     return ds
 
 def getCondorARGS(dataset) :
@@ -160,7 +170,7 @@ def getOutputDirectory(log_lines) :
             line = line.split(":")
             outdir_ = line[1]
             break
-        return outdir_
+    return outdir_
 
 def getNtMakerOutLogName(log_lines) :
     name_ = ""
@@ -209,9 +219,11 @@ def getOutputNtName(log_lines) :
     name_ = ""
     for line in log_lines :
         if not line : continue
-        if "susyNt tree saved to" in line :
-            line = line.replace("susyNt tree saved to ", "")
-            name_ = line.strip()
+        if "NtMaker options" in line :
+            line = line.split()
+            for iopt, ival in enumerate(line) :
+                if ival == "-s" :
+                    name_ = line[iopt + 1] + ".susyNt.root"
             break
     return name_
 
