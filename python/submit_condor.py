@@ -178,7 +178,7 @@ def main() :
                     n_events_           = ""
                     if nEvents > 0 :
                         n_events_       = "-n %s "%str(int(nEvents))
-                    sample_             = "-s %s "%sub_name
+                    sample_             = "--outfile-name %s "%(sub_name + ".susyNt.root")
                     input_container_    = "--input %s "%input_container
                     output_container_   = "--output %s "%outDS
                     do_sys_             = ""

@@ -70,7 +70,7 @@ def main():
                 gridCommand = './bash/gridScript.sh %IN '
                 gridCommand += ' --nLepFilter ' + args.nLepFilter
                 gridCommand += ' --nLepTauFilter ' + args.nLepTauFilter
-                gridCommand += ' -s ' + sample
+                #gridCommand += ' -s ' + sample # not using this anymore (moved everything to use the input container name) 
                 gridCommand += (' --input '+inDS)
                 gridCommand += (' --output '+outDS)
                 gridCommand += (' --tag '+args.tag)
