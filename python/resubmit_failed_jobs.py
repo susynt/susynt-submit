@@ -14,91 +14,61 @@ uc    = False
 class Dataset :
     def __init__(self, log_ = "") :
         self.log = log_
-        self.parentDataset = ""
-        self.subFileName   = ""
-        self.condorARGS = ""
-        self.logLog = ""
-        self.ntLog = ""
-        self.errLog = ""
-        self.output = ""
-        self.outputRemap = ""
-
-    def getParentDataset(self, log) :
-        log = log.split("/")
-        parent_ds = str(log[1])
-        self.parentDataset = parent_ds
-
-    def getSubFileName(self, log) :
-        log = log.split("/")
-        file_ = log[-1]
-        file_ = file_.replace(".out", ".susyNt.root")
-        self.subFileName = file_
-
-    def getCondorARGS(self, log) :
-        lines = open(log).readlines()
-        found_ntmaker = False
-        found_start = False
-        found_out = False
-
-        start_dir = ""
-        out_dir = ""
-        ntmaker_options = ""
-        for line in lines :
-            if found_ntmaker and found_start and found_out: break
-            if not line : continue
-            line = line.strip()
-            if "NtMaker options" in line :
-                found_ntmaker = True
-                ntmaker_options = line.replace("NtMaker options : ", "")
-            elif "start dir" in line :
-                found_start = True
-                line = line.split(":")
-                start_dir = line[1]
-            elif "out dir" in line :
-                found_out = True
-                line = line.split(":")
-                out_dir = line[1]
-
-        self.condorARGS = " %s %s %s "%(start_dir, out_dir, ntmaker_options)
-
-    def getLogs(self, log) :
-        suff = datetime.datetime.now().strftime("%I%M%p_%b_%d_%y")
-        self.logLog = log.replace('.out', '.%s.log'%suff)
-        self.ntLog = log.replace('.out', '.%s.out'%suff)
-        self.errLog = log.replace('.out', '.%s.err'%suff)
-
-    def getOutputFile(self, log) :
-        output_nt = log.split("/")[-1]
-        output_nt = output_nt.replace(".out", ".susyNt.root")
-        self.output = output_nt
-    def getOutputRemap(self, log) :
-        trail = log.split("/")[-1]
-        remap = log.replace(trail, '')
-        remap = remap.replace('logs/', '')
-
-        self.outputRemap = remap
+        self.sourceCodeDir = ""
+        self.outDir = ""
+        self.ntmakerOutLog = ""
+        self.condorLog = ""
+        self.ntmakerErrLog = ""
+        self.ntmakerOptions = ""
+        self.outputSusyNtName = ""
 
 def main() :
     parser = ArgumentParser(description="Condor Submission of Failed Jobs")
     add_arg = parser.add_argument
     add_arg('-f', '--input', required=True, help='Provide the output from the "get_fails.py" script')
     add_arg('-o', '--output-dir', required=True, help='Provide the output directory where all datasets were stored for "submit_condor.py"')
+    add_arg('--brick', action='store_true', default=False, help='set whether to allow for jobs to run on the brick')
+    add_arg('--local', action='store_true', default=False, help='set whether to allow for jobs to run at UCI')
+    add_arg('--sdsc',  action='store_true', default=False, help='set whether to allow for jobs to run at SDSC')
+    add_arg('--uc',    action='store_true', default=False, help='set whether to allow for jobs to run at other UCs')
     args = parser.parse_args()
 
     output_dir = args.output_dir
+    run_site_brick = args.brick
+    run_site_local = args.local
+    run_site_sdsc  = args.sdsc
+    run_site_uc    = args.uc
+
+    if not run_site_brick and not run_site_local and not run_site_sdsc and not run_site_uc :
+        print "No site has been specified! Specify one or any combination."
+        print " > '--brick' : set to run on the brick"
+        print " > '--local' : set to run at UCI"
+        print " > '--sdsc'  : set to run at SDSC"
+        print " > '--uc'    : set to run at other UCs"
+
+    print "________________________________"
+    print "Running with following sites"
+    print "    brick : %s"%run_site_brick
+    print "    local : %s"%run_site_local
+    print "    sdsc  : %s"%run_site_sdsc
+    print "    uc    : %s"%run_site_uc
+    print "________________________________"
+
 
     failed_datasets = getFailedDatasets(args.input)
-    look_for_condor_template(local, sdsc, uc)
+    look_for_condor_script(run_site_brick, run_site_local, run_site_sdsc, run_site_uc)
     look_for_condor_executable()
 
     for ds in failed_datasets :
-        cmd = 'ARGS="%s" '%ds.condorARGS
+        cmd = 'ARGS="%s" '%getCondorARGS(ds)
 
         condor_sub_name = getCondorExecutable(ds)
         cmd += "condor_submit %s "%condor_sub_name
-        cmd += ' -append "log = %s" '%ds.logLog
-        cmd += ' -append "error = %s" '%ds.errLog
-        cmd += ' -append "output = %s" '%ds.ntLog
+
+        time_stamp = datetime.datetime.now().strftime("%I%M%p_%b_%d_%y")
+        cmd += ' -append "log = %s" '%(ds.condorLog.replace(".log", ".%s.log"%time_stamp))
+        cmd += ' -append "error = %s" '%(ds.ntmakerErrLog.replace(".err", ".%s.err"%time_stamp))
+        cmd += ' -append "output = %s" '%(ds.ntmakerOutLog.replace(".out", ".%s.out"%time_stamp))
 
         line_break = "-"*90
         print line_break
@@ -109,25 +79,26 @@ def main() :
 
 def getCondorExecutable(ds) :
     template_lines = open("submitFile_TEMPLATE.condor").readlines()
-    name = 'submitFile_%s.condor'%ds.output
+    suff = ds.outputSusyNtName.replace(".susyNt.root", "")
+    name = 'submitFile_%s.condor'%suff
     outfile = open(name, 'w')
     for line in template_lines :
         if not line : continue
         line = line.strip()
         if 'OUTFILE' in line and 'REMAP' not in line :
-            line = 'transfer_output_files = %s'%ds.output
+            line = 'transfer_output_files = %s'%ds.outputSusyNtName
             outfile.write(line + "\n")
         elif 'OUTFILE_REMAP' in line :
-            path = str(os.path.abspath(ds.outputRemap))
+            path = str(os.path.abspath(ds.outDir))
             if path.endswith("/") : path = path[:-1]
-            path += "/%s"%ds.output
-            line = 'transfer_output_remaps = "%s = %s"'%(ds.output, path)
+            path += "/%s"%ds.outputSusyNtName
+            line = 'transfer_output_remaps = "%s = %s"'%(ds.outputSusyNtName, path)
             outfile.write(line + "\n")
         else :
             outfile.write(line + "\n")
     outfile.close()
     return name
-    
+
 
 def getFailedDatasets(filelist) :
     datasets = []
@@ -140,7 +111,7 @@ def getFailedDatasets(filelist) :
         logs.append(line)
     for log in logs :
         if not os.path.isfile(log) :
-            print "relative path to file (%s) does not exist!"
+            print "relative path to file (%s) does not exist!"%log
             print " > please call this script in the same directory that 'submit_condor.py' was called from."
             sys.exit()
         ds = getDataset(log)
@@ -149,13 +120,100 @@ def getFailedDatasets(filelist) :
 
 def getDataset(log) :
     ds = Dataset(log)
-    ds.getParentDataset(log)
-    ds.getSubFileName(log)
-    ds.getCondorARGS(log)
-    ds.getLogs(log)
-    ds.getOutputFile(log)
-    ds.getOutputRemap(log)
+    lines = open(log).readlines()
+    ds.sourceCodeDir = getSourceCodeDir(lines)
+    ds.outDir = getOutputDirectory(lines)
+    ds.ntmakerOutLog = getNtMakerOutLogName(lines)
+    ds.condorLog = getCondorLogName(lines)
+    ds.ntmakerErrLog = getNtMakerErrLogName(lines)
+    ds.ntmakerOptions = getNtMakerOptions(lines)
+    ds.outputSusyNtName = getOutputNtName(lines)
     return ds
+
+def getCondorARGS(dataset) :
+    args=""
+    args+=' %s '%dataset.sourceCodeDir
+    args+=' %s '%dataset.outDir
+    args+=' %s '%dataset.ntmakerOutLog
+    args+=' %s '%dataset.condorLog
+    args+=' %s '%dataset.ntmakerErrLog
+    args+=' %s '%dataset.ntmakerOptions
+    return args
+
+def getSourceCodeDir(log_lines) :
+    source_ = ""
+    for line in log_lines :
+        if not line : continue
+        line = line.strip()
+        if "source code dir" in line :
+            line = line.split(":")
+            source_ = line[1]
+            break
+    return source_
+
+def getOutputDirectory(log_lines) :
+    outdir_ = ""
+    for line in log_lines :
+        if not line : continue
+        line = line.strip()
+        if "out dir" in line :
+            line = line.split(":")
+            outdir_ = line[1]
+            break
+        return outdir_
+
+def getNtMakerOutLogName(log_lines) :
+    name_ = ""
+    for line in log_lines :
+        if not line : continue
+        line = line.strip()
+        if "NtMaker output log" in line :
+            line = line.split(":")
+            name_ = line[1]
+            break
+    return name_
+
+def getCondorLogName(log_lines) :
+    name_ = ""
+    for line in log_lines :
+        if not line : continue
+        line = line.strip()
+        if "condor log dir" in line :
+            line = line.split(":")
+            name_ = line[1]
+            break
+    return name_
+
+def getNtMakerErrLogName(log_lines) :
+    name_ = ""
+    for line in log_lines :
+        if not line : continue
+        if "NtMaker error log" in line :
+            line = line.split(":")
+            name_ = line[1]
+            break
+    return name_
+
+def getNtMakerOptions(log_lines) :
+    options_ = ""
+    for line in log_lines :
+        if not line : continue
+        if "NtMaker options" in line :
+            options_ = line.replace("NtMaker options", "")
+            options_ = line.replace(":", "", 1)
+            options_ = options_.strip()
+            break
+    return options_
+
+def getOutputNtName(log_lines) :
+    name_ = ""
+    for line in log_lines :
+        if not line : continue
+        if "susyNt tree saved to" in line :
+            line = line.replace("susyNt tree saved to ", "")
+            name_ = line.strip()
+            break
+    return name_
 
 def add_output_files(con_file, root_file, output_path_string) :
     inlines = open(con_file).readlines()
@@ -178,71 +236,92 @@ def add_output_files(con_file, root_file, output_path_string) :
 
     return name
 
-def look_for_condor_template(site_local_ = False, site_sdsc_ = False, site_uc_ = False) :
-    if not os.path.isfile('submitFile_TEMPLATE.condor') :
-        print 'Condor submission script template "submitFile_TEMPLATE.condor" not found. One will be made.'
+def look_for_condor_script(site_brick_ = False, site_local_ = False, site_sdsc_ = False, site_uc_ = False) :
+    '''
+    will look for the default condor submission
+    script "submitFile_TEMPLATE.condor" in the current
+    directory
 
-        site_local = 'false'
-        site_sdsc  = 'false'
-        site_uc    = 'false'
-        if site_local_ : site_local = 'true'
-        if site_sdsc_  : site_sdsc  = 'true'
-        if site_uc_    : site_uc    = 'true'
+    if it is not found it will be made
+    '''
 
-        file_ = open('submitFile_TEMPLATE.condor', 'w')
-        file_.write('universe = vanilla\n')
-        file_.write('+local=true\n')
-        file_.write('+site_local=%s\n'%site_local)
-        file_.write('+sdsc=%s\n'%site_sdsc)
-        file_.write('+uc=%s\n'%site_uc)
-        file_.write('transfer_input_files = area.tgz\n')
-        file_.write('executable = RunNtMaker_CO.sh\n')
-        file_.write('arguments = $ENV(ARGS)\n')
-        file_.write('should_transfer_files = YES\n')
-        file_.write('when_to_transfer_output = ON_EXIT\n')
-        file_.write('transfer_output_files = OUTFILE\n')
-        file_.write('transfer_output_remaps = OUTFILE_REMAP\n')
-        file_.write('use_x509userproxy = True\n')
-        file_.write('notification = Never\n')
-        file_.write('queue\n')
-        file_.close()
+   # if not os.path.isfile('submitFile_TEMPLATE.condor') :
+   # print 'Condor submission script template "submitFile_TEMPLATE.condor" not found. One will be made.'
+    print 'Making Condor submission script template "submitFile_TEMPLATE.condor".'
+
+    site_brick = 'false'
+    site_local = 'false'
+    site_sdsc  = 'false'
+    site_uc    = 'false'
+    if site_brick_ : site_brick = 'true'
+    if site_local_ : site_local = 'true'
+    if site_sdsc_  : site_sdsc  = 'true'
+    if site_uc_    : site_uc    = 'true'
+
+    file_ = open('submitFile_TEMPLATE.condor', 'w')
+    file_.write('universe = vanilla\n')
+    file_.write('+local=%s\n'%site_brick)
+    file_.write('+site_local=%s\n'%site_local)
+    file_.write('+sdsc=%s\n'%site_sdsc)
+    file_.write('+uc=%s\n'%site_uc)
+    file_.write('transfer_input_files = area.tgz\n')
+    file_.write('executable = RunNtMaker.sh\n')
+    file_.write('arguments = $ENV(ARGS)\n')
+    file_.write('should_transfer_files = YES\n')
+    file_.write('when_to_transfer_output = ON_EXIT\n')
+    file_.write('transfer_output_files = OUTFILE\n')
+    file_.write('transfer_output_remaps = OUTFILE_REMAP\n')
+    file_.write('use_x509userproxy = True\n')
+    file_.write('notification = Never\n')
+    file_.write('queue\n')
+    file_.close()
 
 def look_for_condor_executable() :
-    if not os.path.isfile('RunNtMaker_CO.sh') :
-        print 'Condor executable "RunNtMaker_CO.sh" not found. One will be made.'
-    
-        file_ = open('RunNtMaker_CO.sh', 'w')
-        file_.write('#!/bin/bash\n\n\n')
-        file_.write('echo " ------- RunNtMaker ------- "\n')
-        file_.write('start_dir=${1}\n')
-        file_.write('out_dir=${2}\n')
-        file_.write('ntmaker_options=${@:3}\n\n')
-        file_.write('echo "  start dir       : ${start_dir}"\n')
-        file_.write('echo "  out dir         : ${out_dir}"\n')
-        file_.write('echo "  NtMaker options : ${ntmaker_options}"\n')
-        file_.write('echo ""\n')
-        file_.write('#shift the arguments to prevent the atlas script from blindly taking them\n')
-        file_.write('while (( "$#" )); do\n')
-        file_.write('   shift\n')
-        file_.write('done\n\n')
-        file_.write('start_dir1=${PWD}\n')
-        file_.write('echo "untarring area.tgz"\n')
-        file_.write('tar -xzf area.tgz\n\n')
-        file_.write('echo "current directory structure:"\n')
-        file_.write('ls -ltrh\n\n')
-        file_.write('export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase\n')
-        file_.write('source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh\n')
-        file_.write('cd susynt-write\n')
-        file_.write('lsetup fax\n')
-        file_.write('source RootCoreBin/local_setup.sh\n')
-        file_.write('cd ${start_dir1}\n\n')
-        file_.write('echo "calling NtMaker"\n')
-        file_.write('NtMaker ${ntmaker_options}\n\n\n')
-        file_.write('echo "final directory structure:"\n')
-        file_.write('ls -ltrh\n')
-        file_.close()
-        
-        
+    '''
+    will look for the default condor executable
+    "RunNtMaker.sh" in the directory where this
+    script is called
+
+    if it is not found it will be made
+    '''
+    print 'Making condor executable "RunNtMaker.sh"'
+    file_ = open('RunNtMaker.sh', 'w')
+    file_.write('#!/bin/bash\n\n\n')
+    file_.write('echo " ------- RunNtMaker ------- "\n')
+    file_.write('start_dir=${1}\n')
+    file_.write('out_dir=${2}\n')
+    file_.write('out_log_dir=${3}\n')
+    file_.write('log_log_dir=${4}\n')
+    file_.write('err_log_dir=${5}\n')
+    file_.write('ntmaker_options=${@:6}\n\n')
+    file_.write('echo "  source code dir    : ${start_dir}"\n')
+    file_.write('echo "  out dir            : ${out_dir}"\n')
+    file_.write('echo "  NtMaker output log : ${out_log_dir}"\n')
+    file_.write('echo "  condor log dir     : ${log_log_dir}"\n')
+    file_.write('echo "  NtMaker error log  : ${err_log_dir}"\n')
+    file_.write('echo "  NtMaker options    : ${ntmaker_options}"\n')
+    file_.write('echo ""\n')
+    file_.write('#shift the arguments to prevent the atlas script from blindly taking them\n')
+    file_.write('while (( "$#" )); do\n')
+    file_.write('   shift\n')
+    file_.write('done\n\n')
+    file_.write('work_dir=${PWD}\n')
+    file_.write('echo "untarring area.tgz"\n')
+    file_.write('tar -xzf area.tgz\n\n')
+    file_.write('echo "done untarring"\n')
+    file_.write('echo "current directory structure:"\n')
+    file_.write('ls -ltrh\n\n')
+    file_.write('export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase\n')
+    file_.write('source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh\n')
+    file_.write('cd susynt-write\n')
+    file_.write('lsetup fax\n')
+    file_.write('source RootCoreBin/local_setup.sh\n')
+    file_.write('cd ${work_dir}\n\n')
+    file_.write('echo "calling NtMaker"\n')
+    file_.write('NtMaker ${ntmaker_options}\n\n\n')
+    file_.write('echo "final directory structure:"\n')
+    file_.write('ls -ltrh\n')
+    file_.close()
 
 
 if __name__=="__main__" :

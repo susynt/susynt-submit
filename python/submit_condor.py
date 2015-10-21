@@ -65,7 +65,10 @@ def main() :
     add_arg('-t', '--tag', required=True, help='SusyNt tag to assign')
     add_arg('-p', '--pattern', default='.*', help='grep pattern to select datasets')
     add_arg('--cache-only', action='store_true', help='Only build the cache, will not run NtMaker')
-    add_arg('--run-site', default='1', help='Set cluster option [1:brick-only, 2:brick+local, 3:brick+local+SDSC, 4:brick+local+SDSC+UCs] (default: 1)')
+    add_arg('--brick', action='store_true', default=False, help='set whether to allow for jobs to run on the brick')
+    add_arg('--local', action='store_true', default=False, help='set whether to allow for jobs to run at UCI')
+    add_arg('--sdsc',  action='store_true', default=False, help='set whether to allow for jobs to run at SDSC')
+    add_arg('--uc',    action='store_true', default=False, help='set whether to allow for jobs to run at other UCs')
     args = parser.parse_args()
 
     tag         = args.tag
@@ -74,35 +77,37 @@ def main() :
     nEvents     = float(args.nEvents)
     pattern     = args.pattern
     cache_only  = args.cache_only
-    run_site    = args.run_site
+    run_site_brick  = args.brick
+    run_site_local  = args.local
+    run_site_sdsc   = args.sdsc
+    run_site_uc     = args.uc
 
-    site_option   = "brick-only"
-    do_site_local = False
-    do_site_SDSC  = False
-    do_site_UC    = False
-    if run_site == "2" :
-        site_option   = "brick+local"
-        do_site_local = True
-    elif run_site == "3" :
-        site_option   = "brick+local+SDSC"
-        do_site_local = True
-        do_site_SDSC  = True
-    elif run_site == "4" :
-        site_option   = "brick+local+SDSC+UC"
-        do_site_local = True
-        do_site_SDSC  = True
-        do_site_UC    = True
+    if not run_site_brick and not run_site_local and not run_site_sdsc and not run_site_uc :
+        print "No site has been specified! Specify one or any combination."
+        print " > '--brick' : set to run on the brick"
+        print " > '--local' : set to run on at UCI"
+        print " > '--sdsc'  : set to run at SDSC"
+        print " > '--uc'    : set to run at other UCs"
+        sys.exit()
+
+    print "_______________________________"
+    print "Running with following sites"
+    print "    brick : %s"%run_site_brick
+    print "    local : %s"%run_site_local
+    print "    sdsc  : %s"%run_site_sdsc
+    print "    uc    : %s"%run_site_uc
+    print "_______________________________"
 
     # make the necessary condor submission and executables
     # make sure that the susynt-write directory is tar'd and ready to go
-    look_for_condor_script(site_local_ = do_site_local, site_sdsc_ = do_site_SDSC, site_uc_ = do_site_UC)
+    look_for_condor_script(site_brick_ = run_site_brick, site_local_ = run_site_local, site_sdsc_ = run_site_sdsc, site_uc_ = run_site_uc)
     look_for_condor_executable()
     look_for_tarball()
 
     # begin submission process
     cache_or_submit = "Submitting"
     if cache_only : cache_or_submit = "Caching"
-    print "{} {}\ninput file: {}\npattern: {}\nsite option: {}".format(cache_or_submit, tag, input_files, pattern, site_option)
+    print "{} {}\ninput file: {}\npattern: {}".format(cache_or_submit, tag, input_files, pattern)
     for input_file in input_files :
         with open(input_file) as lines :
             lines = [l.strip() for l in lines if is_interesting_line(line=l, regexp=pattern)]
@@ -297,11 +302,11 @@ def look_for_tarball() :
     of the susynt-write directory named "area.tgz"
     '''
     if not os.path.isfile('area.tgz') :
-        print 'Tarball (%s) of susynt-write directory not found. Please create it by calling'
+        print 'Tarball (area.tgz) of susynt-write directory not found. Please create it by calling'
         print '  > tar -cvzf area.tgz susynt-write'
         sys.exit()
 
-def look_for_condor_script(site_local_ = False, site_sdsc_ = False, site_uc_ = False) :
+def look_for_condor_script(site_brick_ = False, site_local_ = False, site_sdsc_ = False, site_uc_ = False) :
     '''
     will look for the default condor submission
     script "submitFile_TEMPLATE.condor" in the current
@@ -314,16 +319,18 @@ def look_for_condor_script(site_local_ = False, site_sdsc_ = False, site_uc_ = F
    # print 'Condor submission script template "submitFile_TEMPLATE.condor" not found. One will be made.'
     print 'Making Condor submission script template "submitFile_TEMPLATE.condor".'
     
+    site_brick = 'false'
     site_local = 'false'
     site_sdsc  = 'false'
     site_uc    = 'false'
+    if site_brick_ : site_brick = 'true'
     if site_local_ : site_local = 'true'
     if site_sdsc_  : site_sdsc  = 'true'
     if site_uc_    : site_uc    = 'true'
     
     file_ = open('submitFile_TEMPLATE.condor', 'w')
     file_.write('universe = vanilla\n')
-    file_.write('+local=true\n')
+    file_.write('+local=%s\n'%site_brick)
     file_.write('+site_local=%s\n'%site_local)
     file_.write('+sdsc=%s\n'%site_sdsc)
     file_.write('+uc=%s\n'%site_uc)
