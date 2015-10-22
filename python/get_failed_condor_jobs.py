@@ -22,7 +22,7 @@ import sys
 import glob
 from argparse import ArgumentParser
 import os
-import datetime
+import time
 
 def main() :
     parser = ArgumentParser(description="yep")
@@ -30,13 +30,6 @@ def main() :
     add_arg("-i", "--input", default="", help="directory of dataset directories", required=True)
     args = parser.parse_args()
     indir = args.input
-
-    #suff = ""
-    #if indir.endswith("/") : suff = indir[:-1]
-    #else :
-    #    suff = indir
-    #outname = "incompleteJobs_%s.txt"%suff
-    #file_ = open(outname, "w")
 
     ntlogmap = getNtMakerLogs(indir) # { dsname : [ntlog1, ntlog2, ...] }
     for ds in ntlogmap.keys() :
@@ -48,10 +41,7 @@ def main() :
                 if not line : continue
                 if "SusyNtMaker job done" in line : job_done = True
             if not job_done :
-                #file_.write("%s\n"%log)
                 print "%s"%log
-    #print "list of incomplete jobs stored at : %s"%outname
-    #file_.close()
 
 def getNtMakerLogs(directory = "") :
     """
@@ -96,25 +86,28 @@ def get_latest_created(logs) :
         run_numbers = l.replace(base, '').split('.')[:2]
         run_numbers = str(run_numbers[0]) + "." + str(run_numbers[1])
         base += run_numbers
-        bases.append(base)
+        if base not in bases :
+            bases.append(base)
     for b in bases :
         duplicates[b] = []
         for l in logs :
             if b in l : duplicates[b].append(l)
-
     # now we have the repeated logs for each dataset
     # > grab only the latest log
     for b in duplicates.keys() :
-        most_recent = creation_date(duplicates[b][0])
-        most_recent_log = duplicates[b][0]
-        for i, l in enumerate(duplicates[b]) :
-            if creation_date(l) > most_recent : most_recent_log = duplicates[b][i]
-        out_logs.append(most_recent_log)
+        out_logs.append(get_youngest_file(duplicates[b]))
     return out_logs
 
-def creation_date(filename) :
-    t = os.path.getctime(filename)
-    return datetime.datetime.fromtimestamp(t)
+def get_youngest_file(files) :
+    now = time.time()
+    list = []
+    fmap = {}
+    for f in files :
+        ftime = now - os.path.getctime(f)
+        list.append(ftime)
+        fmap[ftime] = f
+    youngest_time = min(list)
+    return fmap[youngest_time]
 
 #_______________________________________________
 if __name__=="__main__" :
