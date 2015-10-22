@@ -58,6 +58,7 @@ def main() :
     failed_datasets = getFailedDatasets(args.input)
     look_for_condor_script(run_site_brick, run_site_local, run_site_sdsc, run_site_uc)
     look_for_condor_executable()
+    look_for_tarball()
 
     for ds in failed_datasets :
         cmd = 'ARGS="%s" '%getCondorARGS(ds)
@@ -332,6 +333,11 @@ def look_for_condor_executable() :
     file_.write('echo "final directory structure:"\n')
     file_.write('ls -ltrh\n')
     file_.close()
+
+def look_for_tarball() :
+    if not os.path.isfile("area.tgz") :
+        print "ERROR    expected tarball ('area.tgz') of susynt-write/ directory is not found!"
+        sys.exit()
 
 
 if __name__=="__main__" :
