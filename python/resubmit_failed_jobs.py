@@ -73,11 +73,9 @@ def main() :
         line_break = "-"*90
         print line_break
         print "Resubmitting %s : %s"%(ds.log.replace(output_dir+"/", "",1)[:ds.log.find('/logs')], ds.outputSusyNtName)
-        print "Resubmitting %s : %s"%(ds.parentDataset, ds.output)
         subprocess.call(cmd, shell=True)
         cmd = "rm %s"%condor_sub_name
         subprocess.call(cmd, shell=True)
-        sys.exit()
 
 def getCondorExecutable(ds) :
     template_lines = open("submitFile_TEMPLATE.condor").readlines()
@@ -157,7 +155,7 @@ def getSourceCodeDir(log_lines) :
         line = line.strip()
         if "source code dir" in line :
             line = line.split(":")
-            source_ = line[1]
+            source_ = line[1].strip()
             break
     return source_
 
@@ -168,7 +166,7 @@ def getOutputDirectory(log_lines) :
         line = line.strip()
         if "out dir" in line :
             line = line.split(":")
-            outdir_ = line[1]
+            outdir_ = line[1].strip()
             break
     return outdir_
 
@@ -179,7 +177,7 @@ def getNtMakerOutLogName(log_lines) :
         line = line.strip()
         if "NtMaker output log" in line :
             line = line.split(":")
-            name_ = line[1]
+            name_ = line[1].strip()
             break
     return name_
 
@@ -190,7 +188,7 @@ def getCondorLogName(log_lines) :
         line = line.strip()
         if "condor log dir" in line :
             line = line.split(":")
-            name_ = line[1]
+            name_ = line[1].strip()
             break
     return name_
 
@@ -200,7 +198,7 @@ def getNtMakerErrLogName(log_lines) :
         if not line : continue
         if "NtMaker error log" in line :
             line = line.split(":")
-            name_ = line[1]
+            name_ = line[1].strip()
             break
     return name_
 
@@ -209,9 +207,9 @@ def getNtMakerOptions(log_lines) :
     for line in log_lines :
         if not line : continue
         if "NtMaker options" in line :
-            options_ = line.replace("NtMaker options", "")
-            options_ = line.replace(":", "", 1)
-            options_ = options_.strip()
+            line = line.replace("NtMaker options", "")
+            line = line.replace(":", "", 1)
+            options_ = line.strip()
             break
     return options_
 
@@ -223,7 +221,7 @@ def getOutputNtName(log_lines) :
             line = line.split()
             for iopt, ival in enumerate(line) :
                 if ival == "-s" :
-                    name_ = line[iopt + 1] + ".susyNt.root"
+                    name_ = line[iopt + 1].strip() + ".susyNt.root"
             break
     return name_
 
