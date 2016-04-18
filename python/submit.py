@@ -64,13 +64,13 @@ def main():
                                                   use_group=args.group_role, nickname=args.nickname,
                                                   prun_suffix='_'+out_ds_suffix)
                 is_af2_sample = re.search('_a[0-9]*_', inDS)
+                is_mc15b_sample = ((re.search('_r7267_', inDS) or re.search('_r7326_', inDS) or re.search('_r7360_', inDS) or re.search('_a810_', inDS)) and re.search('_r6282', inDS))
 
                 # Grid command
                 #gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
                 gridCommand = './bash/gridScript.sh %IN '
                 gridCommand += ' --nLepFilter ' + args.nLepFilter
                 gridCommand += ' --nLepTauFilter ' + args.nLepTauFilter
-                gridCommand += ' -s ' + sample
                 gridCommand += (' --input '+inDS)
                 gridCommand += (' --output '+outDS)
                 gridCommand += (' --tag '+args.tag)
@@ -80,6 +80,7 @@ def main():
                 gridCommand += (' --filterOff' if args.filterOff else '')
                 gridCommand += (' --sys' if args.sys else '')
                 gridCommand += (' --af2' if is_af2_sample else '')
+                gridCommand += (' --mc15b' if is_mc15b_sample else '')
                 gridCommand += (' --saveContTau') # if args.contTau else '') # forced on, for now
 
                 line_break = ('_'*90)
@@ -113,10 +114,8 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     output_ds_name = prefix + re.sub('/', '', input_dataset_name)+'_'+nt_tag+'/'
     output_ds_name = re.sub('NTUP_SUSY', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('NTUP_COMMON', 'SusyNt', output_ds_name)
-    output_ds_name = re.sub('DAOD_SUSY5', 'SusyNt', output_ds_name)
-    output_ds_name = re.sub('DAOD_SUSY9', 'SusyNt', output_ds_name)
-    output_ds_name = re.sub('DAOD_SUSY2', 'SusyNt', output_ds_name)
-    output_ds_name = re.sub('DAOD_SUSY1', 'SusyNt', output_ds_name)
+    for i in range(10) :
+        output_ds_name = re.sub('DAOD_SUSY%s'%str(i), 'SusyNt', output_ds_name)
     output_ds_name = re.sub('AOD', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('SKIM',      '', output_ds_name)
     output_ds_name = re.sub('merge\.',   '', output_ds_name)
