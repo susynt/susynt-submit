@@ -64,7 +64,9 @@ def main():
                                                   use_group=args.group_role, nickname=args.nickname,
                                                   prun_suffix='_'+out_ds_suffix)
                 is_af2_sample = re.search('_a[0-9]*_', inDS)
-                is_mc15b_sample = ((re.search('_r7267_', inDS) or re.search('_r7326_', inDS) or re.search('_r7360_', inDS) or re.search('_a810_', inDS)) and re.search('_r6282', inDS))
+                is_mc15b_sample = isMC15b(inDS)
+                #is_mc15b_sample = ((re.search('_r7267_', inDS) or re.search('_r7326_', inDS) or re.search('_r7360_', inDS) or re.search('_a810_', inDS)) and re.search('_r6282', inDS))
+                is_mc15c_sample = isMC15c(inDS)
 
                 # Grid command
                 #gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
@@ -81,6 +83,7 @@ def main():
                 gridCommand += (' --sys' if args.sys else '')
                 gridCommand += (' --af2' if is_af2_sample else '')
                 gridCommand += (' --mc15b' if is_mc15b_sample else '')
+                gridCommand += (' --mc15c' if is_mc15c_sample else '')
                 gridCommand += (' --saveContTau') # if args.contTau else '') # forced on, for now
 
                 line_break = ('_'*90)
@@ -108,6 +111,25 @@ def main():
                 # Execute prun command
                 if args.verbose: print prunCommand
                 subprocess.call(prunCommand, shell=True)
+
+def isMC15b(input_dataset_name) :
+    is_b = False 
+    mc15b_digireco_tags = ['_r7267_', '_r7326_', '_r7360_', '_a810_']
+    mc15b_merge_tag = '_r6282'
+    for tag in mc15b_digireco_tags :
+        if re.search(tag, input_dataset_name) and re.search(mc15b_merge_tag, input_dataset_name) :
+            is_b = True
+    return is_b
+
+def isMC15c(input_dataset_name) :
+    is_c = False
+    mc15c_digireco_tags = ['_r7725_', '_r7772_', '_a818_', '_a821_']
+    mc15c_merge_tag = '_r7676'
+    for tag in mc15c_digireco_tags :
+        if re.search(tag, input_dataset_name) and re.search(mc15c_merge_tag, input_dataset_name) :
+            is_c = True
+    return is_c
+        
 
 def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, prun_suffix='susyNt.root'):
     prefix = 'group.phys-susy.' if use_group else "user.%s."%nickname
