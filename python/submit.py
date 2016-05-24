@@ -123,7 +123,7 @@ def isMC15b(input_dataset_name) :
 
 def isMC15c(input_dataset_name) :
     is_c = False
-    mc15c_digireco_tags = ['_r7725_', '_r7772_', '_a818_', '_a821_']
+    mc15c_digireco_tags = ['_r7725_', '_r7772_', '_a818_', '_a821_', '_r7773_']
     mc15c_merge_tag = '_r7676'
     for tag in mc15c_digireco_tags :
         if re.search(tag, input_dataset_name) and re.search(mc15c_merge_tag, input_dataset_name) :
