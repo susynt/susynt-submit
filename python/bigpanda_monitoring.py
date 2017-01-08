@@ -24,7 +24,7 @@ def monitoring_link_from_logfile(logfilename):
            '&task_type=analysis'
            '&username={0[user]}'
            '&task_id_lt={0[first_task]}'
-           '&task_id_gt={0[last_task]}').format({'user':'Daniel%20Antrim',
+           '&task_id_gt={0[last_task]}').format({'user':'Daniel%20Joseph%20Antrim',
                                                   'first_task' : taskids[0],
                                                   'last_task' : taskids[-1]})
     return url
