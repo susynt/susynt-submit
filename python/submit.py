@@ -86,6 +86,7 @@ def main():
                 gridCommand += (' --mc15c' if is_mc15c_sample else '')
                 gridCommand += (' --saveContTau') # if args.contTau else '') # forced on, for now
 
+
                 line_break = ('_'*90)
                 print "\n{}\nInput {}\nOutput {}\nSample {}\nCommand {}".format(line_break, inDS, outDS, sample, gridCommand)
 
