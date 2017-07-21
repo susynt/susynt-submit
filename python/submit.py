@@ -14,6 +14,7 @@ from argparse import ArgumentParser
 import glob
 import re
 import subprocess
+import sys
 
 def main():
     parser = ArgumentParser(description='NtMaker grid submission')
@@ -24,12 +25,9 @@ def main():
     add_arg('-p', '--pattern', default='.*', help='grep pattern to select datasets')
     add_arg('-v', '--verbose', action='store_true', help='verbose output')
     add_arg('--destSE', default='SLACXRD_SCRATCHDISK', help='replicate output dataset to specified site')
-    add_arg('--met', default='Default', help='MET flavor to use', choices=['STVF', 'STVF_JVF', 'Default'])
-    add_arg('--doMetFix', action='store_true', help='Turns on MET ele-jet overlap fix')
     add_arg('--contTau', action='store_true', help='Store container taus')
     add_arg('--nLepFilter', default='1', help='Number of preselected light leptons to filter on')
-    add_arg('--nLepTauFilter', default='2', help='Number of preselected light+tau to filter on')
-    add_arg('--filterTrig', action='store_true', help='Turn on trigger filter')
+    add_arg('--trigFilter', action='store_true', help='Turn on trigger filter')
     add_arg('--sys', action='store_true', help='toggle systematics, default skip')
     add_arg('--nFilesPerJob', default='5',help='prun option')
     add_arg('--nGBPerJob', help='prun option')
@@ -68,23 +66,34 @@ def main():
                 #is_mc15b_sample = ((re.search('_r7267_', inDS) or re.search('_r7326_', inDS) or re.search('_r7360_', inDS) or re.search('_a810_', inDS)) and re.search('_r6282', inDS))
                 is_mc15c_sample = isMC15c(inDS)
 
+                is_mc15c_sample = True
+                is_mc15b_sample = False
+
+                mc_type = ""
+                if is_mc15c_sample and not is_mc15b_sample :
+                    mc_type = "mc15c"
+                elif is_mc15b_sample and not is_mc15c_sample :
+                    mc_type = "mc15b"
+                else :
+                    print "ERROR Could not get mc_type, exiting"
+                    sys.exit()
+
                 # Grid command
                 #gridCommand = './bash/gridScript.sh %IN --metFlav ' + args.met
                 gridCommand = './bash/gridScript.sh %IN '
                 gridCommand += ' --nLepFilter ' + args.nLepFilter
-                gridCommand += ' --nLepTauFilter ' + args.nLepTauFilter
                 gridCommand += (' --input '+inDS)
                 gridCommand += (' --output '+outDS)
                 gridCommand += (' --tag '+args.tag)
-                gridCommand += (' --doMetFix' if args.doMetFix else '')
-                gridCommand += (' --filterTrig' if args.filterTrig else '')
+                gridCommand += (' --trigFilter' if args.trigFilter else '')
                 gridCommand += (' --saveTruth' if args.saveTruth else '')
-                gridCommand += (' --filterOff' if args.filterOff else '')
+                #gridCommand += (' --filterOff' if args.filterOff else '')
                 gridCommand += (' --sys' if args.sys else '')
                 gridCommand += (' --af2' if is_af2_sample else '')
-                gridCommand += (' --mc15b' if is_mc15b_sample else '')
-                gridCommand += (' --mc15c' if is_mc15c_sample else '')
-                gridCommand += (' --saveContTau') # if args.contTau else '') # forced on, for now
+                gridCommand += (' --mctype '+ mc_type)
+                gridCommand += (' --contTau') # if args.contTau else '') # forced on, for now
+                #print "WARNING FORCING TO RUN ONLY 10000 EVENTS!"
+                #gridCommand += (' -n 10000')
 
 
                 line_break = ('_'*90)
@@ -108,6 +117,7 @@ def main():
                 prunCommand += ('' if not args.group_role else ' --official --voms atlas:/atlas/phys-susy/Role=production')
                 prunCommand += (' --destSE=' + (args.destSE if not args.group_role else
                                                 ','.join([args.destSE, 'SWT2_CPB_PHYS-SUSY','LRZ-LMU_PHYS-SUSY'])))
+                                                #','.join([args.destSE, 'LRZ-LMU_PHYS-SUSY', 'SLACXRD_LOCALGROUPDISK', 'MWT2_UC_LOCALGROUPDISK'])))
 
                 # Execute prun command
                 if args.verbose: print prunCommand
