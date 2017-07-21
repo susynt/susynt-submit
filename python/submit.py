@@ -149,6 +149,7 @@ def determine_outdataset_name(input_dataset_name, nt_tag, use_group, nickname, p
     output_ds_name = re.sub('NTUP_COMMON', 'SusyNt', output_ds_name)
     for i in range(10) :
         output_ds_name = re.sub('DAOD_SUSY%s'%str(i), 'SusyNt', output_ds_name)
+    output_ds_name = re.sub('DAOD_HIGG4D1', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('AOD', 'SusyNt', output_ds_name)
     output_ds_name = re.sub('SKIM',      '', output_ds_name)
     output_ds_name = re.sub('merge\.',   '', output_ds_name)
