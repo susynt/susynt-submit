@@ -15,6 +15,7 @@ import glob
 import re
 import subprocess
 import sys
+import os
 
 def main():
     parser = ArgumentParser(description='NtMaker grid submission')
@@ -49,6 +50,12 @@ def main():
     input_files = args.input_files
     pattern = args.pattern
     blacklist = open('./txt/blacklist.txt').read().strip()
+
+    # CMTCONFIG
+    cmtconfig = os.getenv('CMTCONFIG', "")
+    if cmtconfig == "" :
+        print "CMTCONFIG environment not set, have you setup a release in susynt-write/ ?"
+        sys.exit()
 
     print "Submitting {}\ninput file: {}\npattern:   {}".format(args.tag, input_files, pattern)
     for input_file in input_files:
@@ -100,7 +107,8 @@ def main():
                 print "\n{}\nInput {}\nOutput {}\nSample {}\nCommand {}".format(line_break, inDS, outDS, sample, gridCommand)
 
                 # The prun command
-                prunCommand =  ('prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp ')
+                prunCommand =  ('prun --exec "' + gridCommand + '" --useAthenaPackages --tmpDir /tmp ') # release 21 add useAthenaPackages
+                #prunCommand =  ('prun --exec "' + gridCommand + '" --useRootCore --tmpDir /tmp ')
                 prunCommand += (' --inDS {} --outDS {}'.format(inDS, outDS))
                 prunCommand += (' --inTarBall=area.tgz --extFile "*.so,*.root" --match "*root*"')
                 prunCommand += (' --safetySize=600')
@@ -112,8 +120,9 @@ def main():
                 prunCommand += (' --useNewCode' if args.useNewCode else '')
                 prunCommand += (' --allowTaskDuplication' if args.allowTaskDuplication else '')
                 prunCommand += (' --useShortLivedReplicas' if args.useShortLivedReplicas else '')
-                prunCommand += (' --rootVer=6.02/05 --cmtConfig=x86_64-slc6-gcc48-opt')
-                prunCommand += (' --cmtConfig={}'.format(args.cmtConfig) if args.cmtConfig else '') # conflict with above? DG 2015-05-08
+                prunCommand += (' --rootVer=6.02/05 ')# --cmtConfig=x86_64-slc6-gcc49-opt')
+                prunCommand += (' --cmtConfig={}'.format(cmtconfig)
+                #prunCommand += (' --cmtConfig={}'.format(args.cmtConfig) if args.cmtConfig else '') # conflict with above? DG 2015-05-08
                 prunCommand += ('' if not args.group_role else ' --official --voms atlas:/atlas/phys-susy/Role=production')
                 prunCommand += (' --destSE=' + (args.destSE if not args.group_role else
                                                 ','.join([args.destSE, 'SWT2_CPB_PHYS-SUSY','LRZ-LMU_PHYS-SUSY'])))
